@@ -1,6 +1,5 @@
 extern crate flate2;
 extern crate nom;
-extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate time;
@@ -45,7 +44,6 @@ struct Request {
 }
 
 use flate2::read::GzDecoder;
-use regex::Regex;
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -77,9 +75,6 @@ fn main() {
   let mut lineno = 0;
   let file = read_file(&path);
 
-  let bundler_matcher = Regex::new(r"\Abundler/(?P<bundler>[0-9a-z.\-]+) rubygems/(?P<rubygems>[0-9a-z.\-]+) ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<platform>.*)\) command/(?P<bundler_command>(.*?))( jruby/(?P<jruby>[0-9a-z.\-]+))?( truffleruby/(?P<truffleruby>[0-9a-z.\-]+))?( options/(?P<bundler_options>\S.*)?)?( ci/(?P<ci>\S.*)?)? (?P<bundler_command_uid>.*)\z").unwrap();
-  let rubygems_matcher = Regex::new(r"\A(Ruby, )?RubyGems/(?P<rubygems>[0-9a-z.\-]+) (?P<platform>.*) Ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<ruby_build>.*?)\)( jruby|truffleruby)?( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
-
   for line in file.lines() {
     lineno += 1;
     if lineno % 100_000 == 0 {
@@ -88,15 +83,11 @@ fn main() {
 
     let r: Request = serde_json::from_str(&line.unwrap()).unwrap();
     let t = time::strptime(&r.timestamp, "%F %T").unwrap();
-    if let Some(cap) = rubygems_matcher.captures(&r.user_agent) {
 
+    if let Ok(ua) = parsers::user_agent(&r.user_agent) {
+      print!("{}: {:?}\n\n", t.rfc3339(), ua)
     } else {
-      let cap = bundler_matcher.captures(&r.user_agent);
+      println!("{}: {}\n\n", t.rfc3339(), r.user_agent)
     }
-    // if let Ok(ua) = parsers::user_agent(&r.user_agent) {
-    // print!("{}: {:?}\n\n", t.rfc3339(), ua)
-    // } else {
-    // println!("{}: {}\n\n", t.rfc3339(), r.user_agent)
-    // }
   }
 }

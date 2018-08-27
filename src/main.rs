@@ -63,7 +63,6 @@ fn read_file(path: &str) -> BufReader<GzDecoder<File>> {
 
 fn main() {
   let args: Vec<String> = env::args().collect();
-  println!("{:?}", args);
 
   let path = if args.len() > 1 {
     &args[1]

@@ -1,13 +1,13 @@
 extern crate flate2;
+extern crate nom;
 extern crate serde;
 extern crate serde_json;
 extern crate time;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate nom;
 
-mod user_agent_parser;
+mod parsers;
 
 #[derive(Deserialize, Debug)]
 struct Request {

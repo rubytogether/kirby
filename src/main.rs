@@ -1,5 +1,6 @@
 extern crate flate2;
 extern crate nom;
+extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate time;
@@ -44,34 +45,58 @@ struct Request {
 }
 
 use flate2::read::GzDecoder;
+use regex::Regex;
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 
-fn read_file() -> BufReader<GzDecoder<File>> {
-  // Create a path to the desired file
-  let path = Path::new("test/sample_10.log.gz");
-  let display = path.display();
-
-  // Open the path in read-only mode, returns `io::Result<File>`
+fn read_file(path: &str) -> BufReader<GzDecoder<File>> {
+  let path = Path::new(path);
   let file = match File::open(&path) {
-    // The `description` method of `io::Error` returns a string that
-    // describes the error
-    Err(why) => panic!("couldn't open {}: {}", display, why.description()),
+    Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),
     Ok(file) => file,
   };
 
-  let d = GzDecoder::new(file);
-  BufReader::new(d)
+  BufReader::new(GzDecoder::new(file))
 }
 
 fn main() {
-  let file = read_file();
+  let args: Vec<String> = env::args().collect();
+  println!("{:?}", args);
+
+  let path = if args.len() > 1 {
+    &args[1]
+  } else {
+    "test/sample_10.log.gz"
+  };
+
+  println!("going to open {}", path);
+  let mut lineno = 0;
+  let file = read_file(&path);
+
+  let bundler_matcher = Regex::new(r"\Abundler/(?P<bundler>[0-9a-z.\-]+) rubygems/(?P<rubygems>[0-9a-z.\-]+) ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<platform>.*)\) command/(?P<bundler_command>(.*?))( jruby/(?P<jruby>[0-9a-z.\-]+))?( truffleruby/(?P<truffleruby>[0-9a-z.\-]+))?( options/(?P<bundler_options>\S.*)?)?( ci/(?P<ci>\S.*)?)? (?P<bundler_command_uid>.*)\z").unwrap();
+  let rubygems_matcher = Regex::new(r"\A(Ruby, )?RubyGems/(?P<rubygems>[0-9a-z.\-]+) (?P<platform>.*) Ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<ruby_build>.*?)\)( jruby|truffleruby)?( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
+
   for line in file.lines() {
+    lineno += 1;
+    if lineno % 100_000 == 0 {
+      println!("{}", lineno);
+    }
+
     let r: Request = serde_json::from_str(&line.unwrap()).unwrap();
     let t = time::strptime(&r.timestamp, "%F %T").unwrap();
-    print!("{}: {:?}\n\n", t.rfc3339(), r.user_agent)
+    if let Some(cap) = rubygems_matcher.captures(&r.user_agent) {
+
+    } else {
+      let cap = bundler_matcher.captures(&r.user_agent);
+    }
+    // if let Ok(ua) = parsers::user_agent(&r.user_agent) {
+    // print!("{}: {:?}\n\n", t.rfc3339(), ua)
+    // } else {
+    // println!("{}: {}\n\n", t.rfc3339(), r.user_agent)
+    // }
   }
 }

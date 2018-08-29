@@ -1,5 +1,6 @@
 extern crate flate2;
 extern crate nom;
+extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate time;

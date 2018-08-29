@@ -1,5 +1,7 @@
 use nom::types::CompleteStr;
 use nom::*;
+use regex::Regex;
+
 // use std::str::FromStr;
 
 #[macro_export]
@@ -28,24 +30,100 @@ complete_named!(
   ))
 );
 
-complete_named!(bundler_version, do_parse!(tag!("bundler/") >> v: version >> (v)));
-complete_named!(rubygems_version, do_parse!(alt!(tag!("Ruby, RubyGems/") | tag!("rubygems/")) >> v: version >> (v)));
-complete_named!(ruby_version, do_parse!(alt!(tag!("ruby/") | tag!("Ruby/")) >> v: version >> (v)));
-complete_named!(bundler_platform, delimited!(tag!("("), take_until!(")"), tag!(")")));
+complete_named!(
+  bundler_version,
+  do_parse!(tag!("bundler/") >> v: version >> (v))
+);
+complete_named!(
+  rubygems_version,
+  do_parse!(
+    alt!(tag!("Ruby, RubyGems/") | tag!("RubyGems/") | tag!("rubygems/")) >> v: version >> (v)
+  )
+);
+complete_named!(
+  ruby_version,
+  do_parse!(alt!(tag!("ruby/") | tag!("Ruby/")) >> v: version >> (v))
+);
+complete_named!(
+  bundler_platform,
+  delimited!(tag!("("), take_until!(")"), tag!(")"))
+);
 complete_named!(rubygems_platform, take_until!(" "));
-complete_named!(command, do_parse!(tag!("command/") >> c: take_until!(" ") >> (c)));
-complete_named!(options, do_parse!(tag!("options/") >> o: take_until!(" ") >> (o)));
-complete_named!(uid, recognize!(hex_digit));
+complete_named!(
+  jruby_version,
+  do_parse!(tag!("jruby/") >> v: version >> (v))
+);
+complete_named!(
+  options,
+  do_parse!(tag!("options/") >> o: command_content >> (o))
+);
+complete_named!(ci, do_parse!(tag!("ci/") >> c: take_until!(" ") >> (c)));
+complete_named!(gemstash, do_parse!(tag!("Gemstash/") >> v: version >> (v)));
+
+complete_named!(
+  command,
+  do_parse!(tag!("command/") >> c: command_content >> (c))
+);
+
+fn command_content(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
+  let mut cmd = take_until!(input, " jruby/");
+  match cmd {
+    Ok(_) => return cmd,
+    Err(_) => cmd = take_until!(input, " options/"),
+  }
+
+  match cmd {
+    Ok(_) => return cmd,
+    Err(_) => cmd = take_until!(input, " ci/"),
+  }
+
+  match cmd {
+    Ok(_) => return cmd,
+    Err(_) => {}
+  }
+
+  // Hopefully it's just a uid at the end
+  let re = Regex::new(r"[0-9a-z]{16}$").unwrap();
+  if re.is_match(&input) {
+    return take!(input, (input.len() - 17));
+  }
+
+  // Sometimes it's a uid followed by a Gemstash version or the like
+  let re = Regex::new(r"(.+)( [0-9a-z]{16} .+/.+)$").unwrap();
+  let mut locs = re.capture_locations();
+  let found = re.captures_read(&mut locs, &input);
+  match found {
+    Some(_) => {
+      let l = locs.get(2).unwrap();
+      let r = locs.get(1).unwrap();
+      return Ok((CompleteStr(&input[l.0..l.1]), CompleteStr(&input[r.0..r.1])));
+    }
+    None => take!(input, input.len()),
+  }
+}
+
+// uids need to be both all hex and exactly 16 characters long
+fn uid(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
+  let rec = recognize!(input, hex_digit);
+  match rec {
+    Ok(hex) if hex.1.len() == 16 => rec,
+    Ok(_) => Err(Err::Error(Context::Code(input, ErrorKind::TakeUntil))),
+    Err(e) => Err(e),
+  }
+}
 
 #[derive(PartialEq, Debug)]
 pub struct UserAgent<'a> {
   bundler: Option<&'a str>,
   rubygems: &'a str,
-  ruby: &'a str,
-  platform: &'a str,
+  ruby: Option<&'a str>,
+  platform: Option<&'a str>,
   command: Option<&'a str>,
   options: Option<&'a str>,
   uid: Option<&'a str>,
+  jruby: Option<&'a str>,
+  ci: Option<&'a str>,
+  gemstash: Option<&'a str>,
 }
 
 named!(
@@ -56,16 +134,31 @@ named!(
       ruby: ws!(ruby_version) >>
       platform: ws!(bundler_platform) >>
       command: ws!(command) >>
+      jruby: opt!(ws!(jruby_version)) >>
       options: ws!(options) >>
+      ci: opt!(ws!(ci)) >>
       uid: ws!(uid) >>
+      gemstash: opt!(ws!(gemstash)) >>
       (UserAgent {
         bundler: Some(&bundler),
         rubygems: &rubygems,
-        ruby: &ruby,
-        platform: &platform,
+        ruby: Some(&ruby),
+        platform: Some(&platform),
         command: Some(&command),
         options: Some(&options),
-        uid: Some(&uid)
+        uid: Some(&uid),
+        jruby: match jruby {
+          Some(j) => Some(j.0),
+          None => None
+        },
+        ci: match ci {
+          Some(c) => Some(c.0),
+          None => None,
+        },
+        gemstash: match gemstash {
+          Some(g) => Some(g.0),
+          None => None,
+        }
       })
   )
 );
@@ -79,23 +172,45 @@ named!(rubygems_user_agent<CompleteStr, UserAgent>,
     (UserAgent {
       bundler: None,
       rubygems: &rubygems,
-      ruby: &ruby,
-      platform: &platform,
+      ruby: Some(&ruby),
+      platform: Some(&platform),
       command: None,
       options: None,
       uid: None,
+      jruby: None,
+      ci: None,
+      gemstash: None,
+    })
+  )
+);
+
+named!(old_rubygems_user_agent<CompleteStr, UserAgent>,
+  do_parse!(
+    tag!("Ruby, Gems ") >>
+    rubygems: version >>
+    (UserAgent {
+      bundler: None,
+      rubygems: &rubygems,
+      ruby: None,
+      platform: None,
+      command: None,
+      options: None,
+      uid: None,
+      jruby: None,
+      ci: None,
+      gemstash: None,
     })
   )
 );
 
 named!(any_user_agent<CompleteStr, UserAgent>,
-  alt!(rubygems_user_agent | bundler_user_agent)
+  alt!(rubygems_user_agent | bundler_user_agent | old_rubygems_user_agent)
 );
 
 pub fn user_agent(s: &str) -> Result<UserAgent, Err<CompleteStr>> {
   match any_user_agent(CompleteStr(s)) {
     Result::Ok((_, ua)) => Result::Ok(ua),
-    Result::Err(e) => Result::Err(e)
+    Result::Err(e) => Result::Err(e),
   }
 }
 
@@ -116,6 +231,81 @@ mod tests {
       f(CompleteStr(input)),
       Ok((CompleteStr(""), CompleteStr(res)))
     )
+  }
+
+  #[test]
+  fn parse_options() {
+    assert_eq!(
+      options(CompleteStr("options/install 95ac718b0e500f41")),
+      Ok((CompleteStr(" 95ac718b0e500f41"), CompleteStr("install")))
+    );
+    assert_eq!(
+      options(CompleteStr("options/install ci/circle")),
+      Ok((CompleteStr(" ci/circle"), CompleteStr("install")))
+    );
+    assert_eq!(
+      options(CompleteStr("options/jobs, #git 95ac718b0e500f41")),
+      Ok((CompleteStr(" 95ac718b0e500f41"), CompleteStr("jobs, #git")))
+    );
+    assert_eq!(
+      options(CompleteStr("options/jobs, #git ci/circle 95ac718b0e500f41")),
+      Ok((
+        CompleteStr(" ci/circle 95ac718b0e500f41"),
+        CompleteStr("jobs, #git")
+      ))
+    );
+    assert_eq!(
+      options(CompleteStr(
+        "options/jobs, #git 95ac718b0e500f41 Gemstash/1.1.0"
+      )),
+      Ok((
+        CompleteStr(" 95ac718b0e500f41 Gemstash/1.1.0"),
+        CompleteStr("jobs, #git")
+      ))
+    );
+  }
+
+  #[test]
+  fn parse_command() {
+    assert_eq!(
+      command(CompleteStr("command/install 95ac718b0e500f41")),
+      Ok((CompleteStr(" 95ac718b0e500f41"), CompleteStr("install")))
+    );
+    assert_eq!(
+      command(CompleteStr("command/install jruby/1")),
+      Ok((CompleteStr(" jruby/1"), CompleteStr("install")))
+    );
+    assert_eq!(
+      command(CompleteStr("command/install options/no")),
+      Ok((CompleteStr(" options/no"), CompleteStr("install")))
+    );
+    assert_eq!(
+      command(CompleteStr("command/--without test 95ac718b0e500f41")),
+      Ok((
+        CompleteStr(" 95ac718b0e500f41"),
+        CompleteStr("--without test")
+      ))
+    );
+    assert_eq!(
+      command(CompleteStr(
+        "command/--without test 95ac718b0e500f41 Gemstash/1.1.0"
+      )),
+      Ok((
+        CompleteStr(" 95ac718b0e500f41 Gemstash/1.1.0"),
+        CompleteStr("--without test")
+      ))
+    );
+    assert_eq!(
+      command(CompleteStr("command/--without test jruby/1 options/no")),
+      Ok((
+        CompleteStr(" jruby/1 options/no"),
+        CompleteStr("--without test")
+      ))
+    );
+    assert_eq!(
+      command(CompleteStr("command/--without test options/no")),
+      Ok((CompleteStr(" options/no"), CompleteStr("--without test")))
+    );
   }
 
   #[test]
@@ -155,7 +345,11 @@ mod tests {
 
   #[test]
   fn parse_bundler_platform() {
-    assert_complete(bundler_platform, "(x86_64-pc-linux-gnu)", "x86_64-pc-linux-gnu");
+    assert_complete(
+      bundler_platform,
+      "(x86_64-pc-linux-gnu)",
+      "x86_64-pc-linux-gnu",
+    );
   }
 
   #[test]
@@ -166,42 +360,46 @@ mod tests {
     );
   }
 
-  fn assert_parsed(r: Result<(CompleteStr, UserAgent), Err<CompleteStr>>) {
+  fn assert_parsed(f: fn(CompleteStr) -> IResult<CompleteStr, UserAgent>, input: &str) {
+    let r = f(CompleteStr(input));
     match r {
       Ok((_s, ua)) => assert!(true),
-      Err(e) => panic!("didn't parse")
+      Err(e) => panic!("didn't parse {:?} with {}", input, e),
     }
   }
 
   #[test]
   fn parse_bundler_user_agent() {
-    assert_eq!(
-      bundler_user_agent(CompleteStr(
-        "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-      )).unwrap().1,
-      UserAgent { 
-        bundler: Some("1.12.5"),
-        rubygems: "2.6.10",
-        ruby: "2.3.1",
-        platform: "x86_64-pc-linux-gnu", 
-        command: Some("install"), 
-        options: Some("orig_path"), 
-        uid: Some("95ac718b0e500f41")
-      }
-    );
+    // assert_eq!(
+    //   bundler_user_agent(CompleteStr(
+    //     "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+    //   )).unwrap().1,
+    //   UserAgent {
+    //     bundler: Some("1.12.5"),
+    //     rubygems: "2.6.10",
+    //     ruby: Some("2.3.1"),
+    //     platform: Some("x86_64-pc-linux-gnu"),
+    //     command: Some("install"),
+    //     options: Some("orig_path"),
+    //     uid: Some("95ac718b0e500f41")
+    //   }
+    // );
 
-    assert_parsed(bundler_user_agent(CompleteStr(
-      "bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a"
-    )));
-    assert_parsed(bundler_user_agent(CompleteStr(
-      "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-    )));
-    assert_parsed(bundler_user_agent(CompleteStr(
-      "bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e"
-    )));
-    assert_parsed(bundler_user_agent(CompleteStr(
-      "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-    )));
+    // assert_parsed(bundler_user_agent,
+    //   "bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a"
+    // );
+    // assert_parsed(bundler_user_agent,
+    //   "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+    // );
+    // assert_parsed(bundler_user_agent,
+    //   "bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e"
+    // );
+    // assert_parsed(bundler_user_agent,
+    //   "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+    // );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.15.4 rubygems/2.6.14 ruby/2.4.2 (x86_64-w64-mingw32) command/install options/ 6e8fa23dbf26d4ff Gemstash/1.1.0"
+    );
   }
 
   #[test]
@@ -209,35 +407,66 @@ mod tests {
     assert_eq!(
       rubygems_user_agent(CompleteStr(
         "Ruby, RubyGems/2.4.8 x86_64-linux Ruby/2.1.6 (2015-04-13 patchlevel 336)"
-      )).unwrap().1,
-      UserAgent { 
-        bundler: None, 
+      )).unwrap()
+      .1,
+      UserAgent {
+        bundler: None,
         rubygems: "2.4.8",
-        ruby: "2.1.6",
-        platform: "x86_64-linux", 
-        command: None, 
-        options: None, 
+        ruby: Some("2.1.6"),
+        platform: Some("x86_64-linux"),
+        command: None,
+        options: None,
         uid: None,
+        jruby: None,
+        ci: None,
+        gemstash: None,
       }
     );
-
-// Ruby, RubyGems/2.2.1 x86_64-linux Ruby/2.1.3 (2014-09-19 patchlevel 242)
-// Ruby, RubyGems/2.2.5 x86_64-linux Ruby/2.1.8 (2016-04-22 patchlevel 492)
   }
 
   #[test]
   fn parse_user_agent() {
     assert_eq!(
       user_agent("bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"),
-      Ok(UserAgent { 
-        bundler: Some("1.12.5"), 
+      Ok(UserAgent {
+        bundler: Some("1.12.5"),
         rubygems: "2.6.10",
-        ruby: "2.3.1",
-        platform: "x86_64-pc-linux-gnu", 
-        command: Some("install"), 
-        options: Some("orig_path"), 
-        uid: Some("95ac718b0e500f41")
+        ruby: Some("2.3.1"),
+        platform: Some("x86_64-pc-linux-gnu"),
+        command: Some("install"),
+        options: Some("orig_path"),
+        uid: Some("95ac718b0e500f41"),
+        jruby: None,
+        ci: None,
+        gemstash: None,
       })
     )
+  }
+
+  #[test]
+  fn parse_uid() {
+    assert_complete(uid, "95ac718b0e500f41", "95ac718b0e500f41");
+    assert_eq!(
+      uid(CompleteStr("95ac718b0e500f411")),
+      Err(Error(Code(CompleteStr("95ac718b0e500f411"), TakeUntil)))
+    );
+    assert_eq!(
+      uid(CompleteStr("95ac718b0e500f4")),
+      Err(Error(Code(CompleteStr("95ac718b0e500f4"), TakeUntil)))
+    );
+  }
+
+  use std::fs::File;
+  use std::io::BufRead;
+  use std::io::BufReader;
+  use std::path::Path;
+
+  #[test]
+  fn parse_example_user_agents() {
+    let file = File::open(Path::new("test/client_user_agents.txt")).unwrap();
+    for line in BufReader::new(file).lines() {
+      let s = &line.unwrap();
+      assert_parsed(any_user_agent, s);
+    }
   }
 }

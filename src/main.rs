@@ -59,8 +59,6 @@ fn read_file(filename: &str) -> Box<BufRead> {
     Ok(file) => file,
   };
 
-  println!("{:?}", path.extension());
-
   if path.extension() == Some(OsStr::new("gz")) {
     Box::new(BufReader::new(GzDecoder::new(file)))
   } else {

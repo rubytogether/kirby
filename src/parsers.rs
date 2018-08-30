@@ -25,7 +25,7 @@ complete_named!(
     digit,
     opt!(pair!(
       tag!("."),
-      separated_nonempty_list!(tag!("."), alphanumeric)
+      separated_nonempty_list!(is_a!(".-"), alphanumeric)
     ))
   ))
 );

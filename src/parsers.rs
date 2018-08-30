@@ -142,7 +142,7 @@ named!(
       platform: ws!(bundler_platform) >>
       command: ws!(command) >>
       jruby: opt!(ws!(jruby_version)) >>
-      options: ws!(options) >>
+      options: opt!(ws!(options)) >>
       ci: opt!(ws!(ci)) >>
       uid: ws!(uid) >>
       gemstash: opt!(ws!(gemstash)) >>
@@ -152,7 +152,10 @@ named!(
         ruby: Some(&ruby),
         platform: Some(&platform),
         command: Some(&command),
-        options: Some(&options),
+        options: match options {
+          Some(o) => Some(o.0),
+          None => None
+        },
         uid: Some(&uid),
         jruby: match jruby {
           Some(j) => Some(j.0),
@@ -246,6 +249,10 @@ mod tests {
   #[test]
   fn parse_options() {
     assert_eq!(
+      options(CompleteStr("options/ 95ac718b0e500f41")),
+      Ok((CompleteStr(" 95ac718b0e500f41"), CompleteStr("")))
+    );
+    assert_eq!(
       options(CompleteStr("options/install 95ac718b0e500f41")),
       Ok((CompleteStr(" 95ac718b0e500f41"), CompleteStr("install")))
     );
@@ -262,6 +269,13 @@ mod tests {
       Ok((
         CompleteStr(" ci/circle 95ac718b0e500f41"),
         CompleteStr("jobs, #git")
+      ))
+    );
+    assert_eq!(
+      options(CompleteStr("options/ 6e8fa23dbf26d4ff Gemstash/1.1.0")),
+      Ok((
+        CompleteStr(" 6e8fa23dbf26d4ff Gemstash/1.1.0"),
+        CompleteStr("")
       ))
     );
     assert_eq!(

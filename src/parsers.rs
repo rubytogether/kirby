@@ -394,35 +394,45 @@ mod tests {
 
   #[test]
   fn parse_bundler_user_agent() {
-    // assert_eq!(
-    //   bundler_user_agent(CompleteStr(
-    //     "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-    //   )).unwrap().1,
-    //   UserAgent {
-    //     bundler: Some("1.12.5"),
-    //     rubygems: "2.6.10",
-    //     ruby: Some("2.3.1"),
-    //     platform: Some("x86_64-pc-linux-gnu"),
-    //     command: Some("install"),
-    //     options: Some("orig_path"),
-    //     uid: Some("95ac718b0e500f41")
-    //   }
-    // );
+    assert_eq!(
+      bundler_user_agent(CompleteStr(
+        "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+      )).unwrap().1,
+      UserAgent {
+        bundler: Some("1.12.5"),
+        rubygems: "2.6.10",
+        ruby: Some("2.3.1"),
+        platform: Some("x86_64-pc-linux-gnu"),
+        command: Some("install"),
+        options: Some("orig_path"),
+        uid: Some("95ac718b0e500f41"),
+        ci: None,
+        gemstash: None,
+        jruby: None,
+        truffleruby: None
+      }
+    );
 
-    // assert_parsed(bundler_user_agent,
-    //   "bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a"
-    // );
-    // assert_parsed(bundler_user_agent,
-    //   "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-    // );
-    // assert_parsed(bundler_user_agent,
-    //   "bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e"
-    // );
-    // assert_parsed(bundler_user_agent,
-    //   "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
-    // );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a"
+    );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+    );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e"
+    );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
+    );
     assert_parsed(bundler_user_agent,
       "bundler/1.15.4 rubygems/2.6.14 ruby/2.4.2 (x86_64-w64-mingw32) command/install options/ 6e8fa23dbf26d4ff Gemstash/1.1.0"
+    );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.16.2 rubygems/2.7.6 ruby/2.5.0 (x86_64-Oracle Corporation-linux) command/install jruby/9.2.1.0-SNAPSHOT options/no_install,retry,jobs,gemfile ci/travis,ci fe5e45257d515f1f"
+    );
+    assert_parsed(bundler_user_agent,
+      "bundler/1.5.1 rubygems/2.2.0 ruby/2.1.0 (x86_64-unknown-linux-gnu) command/install fe5e45257d515f1f"
     );
   }
 

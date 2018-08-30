@@ -66,7 +66,13 @@ complete_named!(
 );
 
 fn command_content(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
-  let mut cmd = take_until!(input, " jruby/");
+  let mut cmd = tag!(input, " ");
+
+  match cmd {
+    Ok(_) => return Ok((input, CompleteStr(""))),
+    Err(_) => cmd = take_until!(input, " jruby/"),
+  }
+
   match cmd {
     Ok(_) => return cmd,
     Err(_) => cmd = take_until!(input, " options/"),

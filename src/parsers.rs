@@ -89,13 +89,13 @@ fn command_content(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
   }
 
   // Hopefully it's just a uid at the end
-  let re = Regex::new(r"[0-9a-z]{16}$").unwrap();
+  let re = Regex::new(r"[0-9a-f]{16}$").unwrap();
   if re.is_match(&input) {
     return take!(input, (input.len() - 17));
   }
 
   // Sometimes it's a uid followed by a Gemstash version or the like
-  let re = Regex::new(r"(.+)( [0-9a-z]{16} .+/.+)$").unwrap();
+  let re = Regex::new(r"(.+)( [0-9a-f]{16} .+/.+)$").unwrap();
   let mut locs = re.capture_locations();
   let found = re.captures_read(&mut locs, &input);
   match found {

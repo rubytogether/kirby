@@ -4,9 +4,10 @@ extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate time;
-
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate lazy_static;
 
 mod parsers;
 
@@ -45,6 +46,7 @@ struct Request {
 }
 
 use flate2::read::GzDecoder;
+use parsers::UserAgent;
 use regex::Regex;
 use std::env;
 use std::error::Error;
@@ -68,6 +70,96 @@ fn read_file(filename: &str) -> Box<BufRead> {
   }
 }
 
+fn user_agent_regex(a: &str) -> Option<UserAgent> {
+  lazy_static!{
+    static ref br: Regex = Regex::new(r"\Abundler/(?P<bundler>[0-9a-z.\-]+) rubygems/(?P<rubygems>[0-9a-z.\-]+) ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<platform>.*)\) command/(?P<bundler_command>(.*?))( jruby/(?P<jruby>[0-9a-z.\-]+))?( truffleruby/(?P<truffleruby>[0-9a-z.\-]+))?( options/(?P<bundler_options>\S.*)?)?( ci/(?P<ci>\S.*)?)? (?P<bundler_command_uid>.*)( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
+    static ref rr: Regex = Regex::new(r"\A(Ruby, )?RubyGems/(?P<rubygems>[0-9a-z.\-]+) (?P<platform>.*) Ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<ruby_build>.*?)\)( jruby|truffleruby)?( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
+  }
+
+  let mut bl = br.capture_locations();
+  let mut rl = rr.capture_locations();
+
+  if let Some(ua) = br.captures_read(&mut bl, a) {
+    return Some(UserAgent {
+      bundler: match bl.get(1) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      rubygems: match bl.get(2) {
+        Some(loc) => &a[loc.0..loc.1],
+        _ => "",
+      },
+      ruby: match bl.get(3) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      platform: match bl.get(4) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      command: match bl.get(5) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      jruby: match bl.get(6) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      truffleruby: match bl.get(7) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      options: match bl.get(8) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      ci: match bl.get(9) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      uid: match bl.get(10) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+      gemstash: match bl.get(11) {
+        Some(loc) => Some(&a[loc.0..loc.1]),
+        _ => None,
+      },
+    });
+  } else {
+    match rr.captures_read(&mut rl, a) {
+      Some(_) => {
+        return Some(UserAgent {
+          bundler: None,
+          rubygems: match rl.get(1) {
+            Some(loc) => &a[loc.0..loc.1],
+            _ => "",
+          },
+          ruby: match rl.get(3) {
+            Some(loc) => Some(&a[loc.0..loc.1]),
+            _ => None,
+          },
+          platform: match rl.get(2) {
+            Some(loc) => Some(&a[loc.0..loc.1]),
+            _ => None,
+          },
+          command: None,
+          jruby: None,
+          truffleruby: None,
+          options: None,
+          ci: None,
+          uid: None,
+          gemstash: match rl.get(5) {
+            Some(loc) => Some(&a[loc.0..loc.1]),
+            _ => None,
+          },
+        })
+      }
+      _ => None,
+    }
+  }
+}
+
 fn main() {
   let args: Vec<String> = env::args().collect();
 
@@ -81,9 +173,6 @@ fn main() {
   let mut lineno = 0;
   let file = read_file(&path);
 
-  let br = Regex::new(r"\Abundler/(?P<bundler>[0-9a-z.\-]+) rubygems/(?P<rubygems>[0-9a-z.\-]+) ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<platform>.*)\) command/(?P<bundler_command>(.*?))( jruby/(?P<jruby>[0-9a-z.\-]+))?( truffleruby/(?P<truffleruby>[0-9a-z.\-]+))?( options/(?P<bundler_options>\S.*)?)?( ci/(?P<ci>\S.*)?)? (?P<bundler_command_uid>.*)( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
-  let rr = Regex::new(r"\A(Ruby, )?RubyGems/(?P<rubygems>[0-9a-z.\-]+) (?P<platform>.*) Ruby/(?P<ruby>[0-9a-z.\-]+) \((?P<ruby_build>.*?)\)( jruby|truffleruby)?( Gemstash/(?P<gemstash>[0-9a-z.\-]+))?\z").unwrap();
-
   for line in file.lines() {
     lineno += 1;
     if lineno % 100_000 == 0 {
@@ -93,103 +182,6 @@ fn main() {
     let l = &line.unwrap();
     let r: Request = serde_json::from_str(l).unwrap();
     let t = time::strptime(&r.timestamp, "%F %T").unwrap();
-    let mut user_agent = parsers::UserAgent {
-      bundler: None,
-      rubygems: "",
-      ruby: None,
-      platform: None,
-      command: None,
-      options: None,
-      uid: None,
-      jruby: None,
-      truffleruby: None,
-      ci: None,
-      gemstash: None,
-    };
-    let mut bl = br.capture_locations();
-    let mut rl = rr.capture_locations();
-    let a = &r.user_agent;
-
-    if let Some(ua) = br.captures_read(&mut bl, a) {
-      user_agent = parsers::UserAgent {
-        bundler: match bl.get(1) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        rubygems: match bl.get(2) {
-          Some(loc) => &a[loc.0..loc.1],
-          _ => "",
-        },
-        ruby: match bl.get(3) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        platform: match bl.get(4) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        command: match bl.get(5) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        jruby: match bl.get(6) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        truffleruby: match bl.get(7) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        options: match bl.get(8) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        ci: match bl.get(9) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        uid: match bl.get(10) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-        gemstash: match bl.get(11) {
-          Some(loc) => Some(&a[loc.0..loc.1]),
-          _ => None,
-        },
-      }
-    } else {
-      match rr.captures_read(&mut rl, &r.user_agent) {
-        Some(ua) => {
-          user_agent = parsers::UserAgent {
-            bundler: None,
-            rubygems: match rl.get(1) {
-              Some(loc) => &a[loc.0..loc.1],
-              _ => "",
-            },
-            ruby: match rl.get(3) {
-              Some(loc) => Some(&a[loc.0..loc.1]),
-              _ => None,
-            },
-            platform: match rl.get(2) {
-              Some(loc) => Some(&a[loc.0..loc.1]),
-              _ => None,
-            },
-            command: None,
-            jruby: None,
-            truffleruby: None,
-            options: None,
-            ci: None,
-            uid: None,
-            gemstash: match rl.get(5) {
-              Some(loc) => Some(&a[loc.0..loc.1]),
-              _ => None,
-            },
-          }
-        }
-        _ => println!("unknown: {}", a),
-      }
-    }
-
     // println!("{}: {:?}", t.rfc3339(), user_agent);
     // if let Ok(ua) = parsers::user_agent(&r.user_agent) {
     // print!("{}: {:?}\n\n", t.rfc3339(), ua)

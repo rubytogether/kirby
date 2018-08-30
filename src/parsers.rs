@@ -114,16 +114,17 @@ fn uid(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
 
 #[derive(PartialEq, Debug)]
 pub struct UserAgent<'a> {
-  bundler: Option<&'a str>,
-  rubygems: &'a str,
-  ruby: Option<&'a str>,
-  platform: Option<&'a str>,
-  command: Option<&'a str>,
-  options: Option<&'a str>,
-  uid: Option<&'a str>,
-  jruby: Option<&'a str>,
-  ci: Option<&'a str>,
-  gemstash: Option<&'a str>,
+  pub bundler: Option<&'a str>,
+  pub rubygems: &'a str,
+  pub ruby: Option<&'a str>,
+  pub platform: Option<&'a str>,
+  pub command: Option<&'a str>,
+  pub options: Option<&'a str>,
+  pub uid: Option<&'a str>,
+  pub jruby: Option<&'a str>,
+  pub truffleruby: Option<&'a str>,
+  pub ci: Option<&'a str>,
+  pub gemstash: Option<&'a str>,
 }
 
 named!(
@@ -151,6 +152,7 @@ named!(
           Some(j) => Some(j.0),
           None => None
         },
+        truffleruby: None,
         ci: match ci {
           Some(c) => Some(c.0),
           None => None,
@@ -178,6 +180,7 @@ named!(rubygems_user_agent<CompleteStr, UserAgent>,
       options: None,
       uid: None,
       jruby: None,
+      truffleruby: None,
       ci: None,
       gemstash: None,
     })
@@ -197,6 +200,7 @@ named!(old_rubygems_user_agent<CompleteStr, UserAgent>,
       options: None,
       uid: None,
       jruby: None,
+      truffleruby: None,
       ci: None,
       gemstash: None,
     })

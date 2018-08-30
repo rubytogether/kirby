@@ -442,6 +442,7 @@ mod tests {
         options: None,
         uid: None,
         jruby: None,
+        truffleruby: None,
         ci: None,
         gemstash: None,
       }
@@ -461,6 +462,7 @@ mod tests {
         options: Some("orig_path"),
         uid: Some("95ac718b0e500f41"),
         jruby: None,
+        truffleruby: None,
         ci: None,
         gemstash: None,
       })

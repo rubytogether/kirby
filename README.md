@@ -6,11 +6,11 @@ Kirby slurps up the firehose of logs from Fastly and calculates daily counts for
 
 For an 80MB gzipped log file containing 915,427 JSON event objects (which is 1.02GB uncompressed):
 
-- **3.6 seconds** to read the entire file line by line
-- **27.4 seconds** to parse every JSON object into a Rust struct
-- **63 seconds**  to further parse every User Agent field for version information
+- **3.6 seconds total** to read the entire file line by line
+- **27.4 seconds total** to also parse every JSON object into a Rust struct
+- **63 seconds total**  to further parse every User Agent field for versions and metrics from Bundler, RubyGems, Ruby, and more
 
-This is... very good. For comparison, a Python script that used AWS Glue to do something similar took about 30 minutes. Just switching the User Agent parsing to `regex` from a `nom` parser-combinator increased the time for the same result to around 3.5 minutes.
+This is... very good. For comparison, a Python script that used AWS Glue to do something similar took about 30 minutes. Writing a `nom` parser-combinator to parse the User Agent field instead of using a regex increased the time for the same result to around 3.5 minutes. It's pretty fast!
 
 ### What does it calculate?
 

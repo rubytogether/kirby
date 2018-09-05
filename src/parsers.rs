@@ -2,7 +2,7 @@ use nom::types::CompleteStr;
 use nom::*;
 use regex::Regex;
 
-// use std::str::FromStr;
+use user_agent::UserAgent;
 
 #[macro_export]
 macro_rules! complete_named (
@@ -118,21 +118,6 @@ fn uid(input: CompleteStr) -> IResult<CompleteStr, CompleteStr> {
   }
 }
 
-#[derive(PartialEq, Debug)]
-pub struct UserAgent<'a> {
-  pub bundler: Option<&'a str>,
-  pub rubygems: &'a str,
-  pub ruby: Option<&'a str>,
-  pub platform: Option<&'a str>,
-  pub command: Option<&'a str>,
-  pub options: Option<&'a str>,
-  pub uid: Option<&'a str>,
-  pub jruby: Option<&'a str>,
-  pub truffleruby: Option<&'a str>,
-  pub ci: Option<&'a str>,
-  pub gemstash: Option<&'a str>,
-}
-
 named!(
   bundler_user_agent<CompleteStr, UserAgent>,
   do_parse!(
@@ -216,16 +201,9 @@ named!(old_rubygems_user_agent<CompleteStr, UserAgent>,
   )
 );
 
-named!(any_user_agent<CompleteStr, UserAgent>,
+named!(pub any_user_agent<CompleteStr, UserAgent>,
   alt!(rubygems_user_agent | bundler_user_agent | old_rubygems_user_agent)
 );
-
-pub fn user_agent(s: &str) -> Result<UserAgent, Err<CompleteStr>> {
-  match any_user_agent(CompleteStr(s)) {
-    Result::Ok((_, ua)) => Result::Ok(ua),
-    Result::Err(e) => Result::Err(e),
-  }
-}
 
 #[cfg(test)]
 mod tests {
@@ -460,26 +438,6 @@ mod tests {
   }
 
   #[test]
-  fn parse_user_agent() {
-    assert_eq!(
-      user_agent("bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"),
-      Ok(UserAgent {
-        bundler: Some("1.12.5"),
-        rubygems: "2.6.10",
-        ruby: Some("2.3.1"),
-        platform: Some("x86_64-pc-linux-gnu"),
-        command: Some("install"),
-        options: Some("orig_path"),
-        uid: Some("95ac718b0e500f41"),
-        jruby: None,
-        truffleruby: None,
-        ci: None,
-        gemstash: None,
-      })
-    )
-  }
-
-  #[test]
   fn parse_uid() {
     assert_complete(uid, "95ac718b0e500f41", "95ac718b0e500f41");
     assert_eq!(
@@ -490,19 +448,5 @@ mod tests {
       uid(CompleteStr("95ac718b0e500f4")),
       Err(Error(Code(CompleteStr("95ac718b0e500f4"), TakeUntil)))
     );
-  }
-
-  use std::fs::File;
-  use std::io::BufRead;
-  use std::io::BufReader;
-  use std::path::Path;
-
-  #[test]
-  fn parse_example_user_agents() {
-    let file = File::open(Path::new("test/client_user_agents.txt")).unwrap();
-    for line in BufReader::new(file).lines() {
-      let s = &line.unwrap();
-      assert_parsed(any_user_agent, s);
-    }
   }
 }

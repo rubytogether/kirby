@@ -26,6 +26,22 @@ mod user_agent;
 
 type StatsMap = HashMap<String, HashMap<String, HashMap<String, i32>>>;
 
+fn combine_stats(left: &StatsMap, right: &StatsMap) -> StatsMap {
+  let mut left_times = left.clone();
+  for (time, names) in right {
+    let left_names = left_times.entry(time.to_string()).or_insert(HashMap::new());
+    for (name, versions) in names {
+      let left_versions = left_names.entry(name.to_string()).or_insert(HashMap::new());
+      for (version, count) in versions {
+        let left_count = left_versions.entry(version.to_string()).or_insert(0);
+        *left_count += count;
+      }
+    }
+  }
+
+  left_times
+}
+
 fn print_misses(path: &str, opts: &Options) {
   file::reader(&path, &opts).lines().for_each(|line| {
     let l = &line.unwrap();
@@ -123,9 +139,12 @@ fn main() {
     return;
   }
 
-  opts
+  let stats = opts
     .paths
     .par_iter()
     .map(|path| file_to_stats(&path, &opts))
-    .for_each(|stats| println!("{:?}", stats));
+    .reduce_with(|a, b| combine_stats(&a, &b))
+    .unwrap();
+
+  println!("{:?}", stats);
 }

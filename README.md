@@ -14,7 +14,7 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 
 ### Wait, _how_ fast?
 
-        525 records/second/cpu in Python on AWS Glue
+       ~525 records/second/cpu in Python on AWS Glue
      50,534 records/second/cpu in Rust with nom
     121,153 records/second/cpu in Rust with regex
 
@@ -22,7 +22,7 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 
 No. It gets even better if you have multiple cores.
 
-      4,200 records/second in Python with 8 worker instances on AWS Glue
+     ~4,200 records/second in Python with 8 worker instances on AWS Glue
     399,300 records/second in Rust with 8 cores and rayon on a MacBook Pro
 
 ### What does it calculate?

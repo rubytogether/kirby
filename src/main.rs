@@ -42,7 +42,7 @@ fn combine_stats(left: &StatsMap, right: &StatsMap) -> StatsMap {
   left_times
 }
 
-fn print_misses(path: &str, opts: &Options) {
+fn print_unknown_user_agents(path: &str, opts: &Options) {
   file::reader(&path, &opts).lines().for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_str(l).unwrap();
@@ -113,24 +113,24 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
 
 pub struct Options {
   verbose: bool,
-  show_misses: bool,
+  unknown: bool,
   paths: Vec<String>,
 }
 
 fn main() {
   let mut opts = Options {
     paths: ["test/sample_10.log.gz".to_string()].to_vec(),
-    show_misses: false,
+    unknown: false,
     verbose: false,
   };
 
   {
     let mut ap = ArgumentParser::new();
     ap.set_description("Parse a RubyGems.org Fastly JSON log file.");
-    ap.refer(&mut opts.show_misses).add_option(
-      &["-m", "--misses"],
+    ap.refer(&mut opts.unknown).add_option(
+      &["-u", "--unknown"],
       StoreTrue,
-      "Print only user agents strings that failed to parse",
+      "Print only unrecognized user agent strings",
     );
     ap.refer(&mut opts.verbose)
       .add_option(&["-v", "--verbose"], StoreTrue, "Be verbose");
@@ -139,11 +139,11 @@ fn main() {
     ap.parse_args_or_exit();
   }
 
-  if opts.show_misses {
+  if opts.unknown {
     opts
       .paths
       .par_iter()
-      .for_each(|path| print_misses(path, &opts));
+      .for_each(|path| print_unknown_user_agents(path, &opts));
     return;
   }
 

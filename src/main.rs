@@ -127,7 +127,7 @@ fn main() {
     ap.refer(&mut opts.verbose)
       .add_option(&["-v", "--verbose"], StoreTrue, "Be verbose");
     ap.refer(&mut opts.paths)
-      .add_argument("FILE", Collect, "Path of the log file to parse");
+      .add_argument("FILE", Collect, "Paths to the log file(s) to process");
     ap.parse_args_or_exit();
   }
 

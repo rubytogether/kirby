@@ -6,7 +6,11 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 
-pub fn reader(filename: &str) -> Box<BufRead> {
+pub fn reader(filename: &str, opts: &super::Options) -> Box<BufRead> {
+  if opts.verbose {
+    println!("Opening log file {}", filename);
+  }
+
   let path = Path::new(filename);
   let file = match File::open(&path) {
     Err(why) => panic!("couldn't open {}: {}", path.display(), why.description()),

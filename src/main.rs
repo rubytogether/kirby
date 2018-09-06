@@ -8,6 +8,7 @@ extern crate lazy_static;
 extern crate argparse;
 extern crate flate2;
 extern crate nom;
+extern crate rayon;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
@@ -15,6 +16,7 @@ extern crate test;
 extern crate time;
 
 use argparse::{ArgumentParser, Collect, StoreTrue};
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::io::*;
 
@@ -24,16 +26,22 @@ mod user_agent;
 
 type StatsMap = HashMap<String, HashMap<String, HashMap<String, i32>>>;
 
+fn print_misses(path: &str, opts: &Options) {
+  file::reader(&path, &opts).lines().for_each(|line| {
+    let l = &line.unwrap();
+    let r: request::Request = serde_json::from_str(l).unwrap();
+    match user_agent::parse(&r.user_agent) {
+      None => println!("{}", r.user_agent),
+      Some(_) => (),
+    }
+  });
+}
+
 fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
   let mut lineno = 0;
   let mut times = HashMap::new();
 
-  if opts.verbose {
-    println!("Opening log file {}", path);
-  }
-  let file = file::reader(&path);
-
-  for line in file.lines() {
+  file::reader(&path, &opts).lines().for_each(|line| {
     if opts.verbose {
       lineno += 1;
       if lineno % 100_000 == 0 {
@@ -45,15 +53,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_str(l).unwrap();
     let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
-    let mut counters = times.entry(hour).or_insert(HashMap::new());
-
-    if opts.show_misses {
-      match user_agent::parse(&r.user_agent) {
-        None => println!("{}", r.user_agent),
-        Some(_) => (),
-      }
-      continue;
-    }
+    let counters = times.entry(hour).or_insert(HashMap::new());
 
     if let Some(ua) = user_agent::parse(&r.user_agent) {
       {
@@ -78,7 +78,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
         *count += 1;
       }
     }
-  }
+  });
 
   if opts.verbose {
     println!("");
@@ -87,7 +87,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
   times
 }
 
-struct Options {
+pub struct Options {
   verbose: bool,
   show_misses: bool,
   paths: Vec<String>,
@@ -115,8 +115,17 @@ fn main() {
     ap.parse_args_or_exit();
   }
 
-  for path in &opts.paths {
-    let times = file_to_stats(&path, &opts);
-    println!("{:?}", times);
+  if opts.show_misses {
+    opts
+      .paths
+      .par_iter()
+      .for_each(|path| print_misses(path, &opts));
+    return;
   }
+
+  opts
+    .paths
+    .par_iter()
+    .map(|path| file_to_stats(&path, &opts))
+    .for_each(|stats| println!("{:?}", stats));
 }

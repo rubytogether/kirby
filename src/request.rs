@@ -14,7 +14,7 @@ pub struct Request {
   // request: String,
   // request_host: String,
   pub request_path: String,
-  // request_query: String,
+  pub request_query: String,
   // request_bytes: u16,
   pub user_agent: String,
   pub http2: bool,

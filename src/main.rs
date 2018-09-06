@@ -53,16 +53,31 @@ fn print_unknown_user_agents(path: &str, opts: &Options) {
   });
 }
 
-fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
+fn duplicate_request(r: &request::Request) -> bool {
   lazy_static! {
-    static ref install_paths: Vec<String> = vec![
-      "/api/v1/dependencies".to_string(),
+    static ref metadata_paths: Vec<String> = vec![
       "/latest_specs.4.8.gz".to_string(),
       "/prerelease_specs.4.8.gz".to_string(),
       "/specs.4.8.gz".to_string(),
       "/versions".to_string()
     ];
   }
+
+  if r.request_path == "/api/v1/dependencies" && r.request_query != "" {
+    // Requests for dependencies are recursive, and so we want to count only one
+    // request per time a user runs a command, rather than every request that was
+    // made to satisfy that command. It seems like RubyGems makes one HEAD
+    // request with no query, and Bundler makes one GET request with no query,
+    // per command that is run. We ignore the rest for stats purposes.
+    true
+  } else {
+    // Versions that don't use the Dependency API make one request, either for
+    // specs or for versions. We want to count each of those.
+    !metadata_paths.contains(&r.request_path)
+  }
+}
+
+fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
   let mut lineno = 0;
   let mut times = HashMap::new();
 
@@ -78,7 +93,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
     match line {
       Ok(l) => {
         let r: request::Request = serde_json::from_str(&l).unwrap();
-        if !install_paths.contains(&r.request_path) {
+        if duplicate_request(&r) {
           return;
         }
 

@@ -74,11 +74,6 @@ fn main() {
     }
 
     if let Some(ua) = user_agent::parse(&r.user_agent) {
-      if ua.rubygems == "" {
-        println!("{:?}", ua);
-        println!("{}", r.user_agent);
-        break;
-      }
       {
         let rubygems = counters.entry("rubygems").or_insert(HashMap::new());
         let count = rubygems.entry(String::from(ua.rubygems)).or_insert(0);

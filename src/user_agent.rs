@@ -25,7 +25,7 @@ fn user_agent_parser(s: &str) -> Option<UserAgent> {
 }
 
 pub fn parse(a: &str) -> Option<UserAgent> {
-  user_agent_regex(a)
+  user_agent_parser(a)
 }
 
 fn user_agent_regex(a: &str) -> Option<UserAgent> {

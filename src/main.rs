@@ -54,6 +54,15 @@ fn print_unknown_user_agents(path: &str, opts: &Options) {
 }
 
 fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
+  lazy_static! {
+    static ref install_paths: Vec<String> = vec![
+      "/api/v1/dependencies".to_string(),
+      "/latest_specs.4.8.gz".to_string(),
+      "/prerelease_specs.4.8.gz".to_string(),
+      "/specs.4.8.gz".to_string(),
+      "/versions".to_string()
+    ];
+  }
   let mut lineno = 0;
   let mut times = HashMap::new();
 
@@ -69,6 +78,10 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
     match line {
       Ok(l) => {
         let r: request::Request = serde_json::from_str(&l).unwrap();
+        if !install_paths.contains(&r.request_path) {
+          return;
+        }
+
         let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
         let counters = times.entry(hour).or_insert(HashMap::new());
 

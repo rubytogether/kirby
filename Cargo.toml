@@ -1,5 +1,5 @@
 [package]
-name = "ecostats"
+name = "kirby"
 version = "0.1.0"
 authors = ["André Arko <andre@arko.net>"]
 

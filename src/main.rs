@@ -16,12 +16,9 @@ extern crate time;
 
 use argparse::{ArgumentParser, Store, StoreTrue};
 use std::collections::HashMap;
-use std::env;
 use std::io::*;
-use user_agent::UserAgent;
 
 mod file;
-mod parsers;
 mod request;
 mod user_agent;
 

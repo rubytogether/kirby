@@ -66,32 +66,40 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
       }
     }
 
-    let l = &line.unwrap();
-    let r: request::Request = serde_json::from_str(l).unwrap();
-    let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
-    let counters = times.entry(hour).or_insert(HashMap::new());
+    match line {
+      Ok(l) => {
+        let r: request::Request = serde_json::from_str(&l).unwrap();
+        let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
+        let counters = times.entry(hour).or_insert(HashMap::new());
 
-    if let Some(ua) = user_agent::parse(&r.user_agent) {
-      {
-        let rubygems = counters
-          .entry("rubygems".to_string())
-          .or_insert(HashMap::new());
-        let count = rubygems.entry(String::from(ua.rubygems)).or_insert(0);
-        *count += 1;
+        if let Some(ua) = user_agent::parse(&r.user_agent) {
+          {
+            let rubygems = counters
+              .entry("rubygems".to_string())
+              .or_insert(HashMap::new());
+            let count = rubygems.entry(String::from(ua.rubygems)).or_insert(0);
+            *count += 1;
+          }
+
+          if let Some(bundler_version) = ua.bundler {
+            let bundlers = counters
+              .entry("bundler".to_string())
+              .or_insert(HashMap::new());
+            let count = bundlers.entry(String::from(bundler_version)).or_insert(0);
+            *count += 1;
+          }
+
+          if let Some(ruby_version) = ua.ruby {
+            let rubies = counters.entry("ruby".to_string()).or_insert(HashMap::new());
+            let count = rubies.entry(String::from(ruby_version)).or_insert(0);
+            *count += 1;
+          }
+        }
       }
-
-      if let Some(bundler_version) = ua.bundler {
-        let bundlers = counters
-          .entry("bundler".to_string())
-          .or_insert(HashMap::new());
-        let count = bundlers.entry(String::from(bundler_version)).or_insert(0);
-        *count += 1;
-      }
-
-      if let Some(ruby_version) = ua.ruby {
-        let rubies = counters.entry("ruby".to_string()).or_insert(HashMap::new());
-        let count = rubies.entry(String::from(ruby_version)).or_insert(0);
-        *count += 1;
+      Err(e) => {
+        if opts.verbose {
+          eprintln!("Failed to read line:\n  {}", e);
+        }
       }
     }
   });

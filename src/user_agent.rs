@@ -33,7 +33,7 @@ fn user_agent_regex(a: &str) -> Option<UserAgent> {
     // Here is the named regex. The regex created below does not include names, because that interface has borrowing issues 😬
     // \Abundler/(?<bundler>[0-9a-zA-Z.\-]+) rubygems/(?<rubygems>[0-9a-zA-Z.\-]+) ruby/(?<ruby>[0-9a-zA-Z.\-]+) \((?<platform>.*)\) command/(.*?)(?: jruby/(?<jruby>[0-9a-zA-Z.\-]+))?(?: truffleruby/(?<truffleruby>[0-9a-zA-Z.\-]+))?(?: options/(?<options>.*?))?(?: ci/(?<ci>.*?))? ([a-f0-9]{16})(?: Gemstash/(?<gemstash>[0-9a-zA-Z.\-]+))?\z
     static ref br: Regex = Regex::new(r"\Abundler/([0-9a-zA-Z.\-]+) rubygems/([0-9a-zA-Z.\-]+) ruby/([0-9a-zA-Z.\-]+) \((.*)\) command/(.*?)(?: jruby/([0-9a-zA-Z.\-]+))?(?: truffleruby/([0-9a-zA-Z.\-]+))?(?: options/(.*?))?(?: ci/(.*?))? ([a-f0-9]{16})(?: Gemstash/([0-9a-zA-Z.\-]+))?\z").unwrap();
-    static ref rr: Regex = Regex::new(r"\A(?:Ruby, )?RubyGems/([0-9a-z.\-]+) (.*) Ruby/([0-9a-z.\-]+) \((.*?)\)(?: jruby| truffleruby| rbx)?(?: Gemstash/([0-9a-z.\-]+))?\z").unwrap();
+    static ref rr: Regex = Regex::new(r"\A(?:Ruby, )?RubyGems/([0-9a-z.\-]+) (.*) Ruby/([0-9a-z.\-]+) \(.*?\)(?: jruby| truffleruby| rbx)?(?: Gemstash/([0-9a-z.\-]+))?\z").unwrap();
     static ref gr: Regex = Regex::new(r"\ARuby, Gems ([0-9a-z.\-]+)\z").unwrap();
   }
 
@@ -49,7 +49,7 @@ fn user_agent_regex(a: &str) -> Option<UserAgent> {
       },
       rubygems: match bl.get(2) {
         Some(loc) => &a[loc.0..loc.1],
-        _ => "",
+        _ => panic!("parse failed on {:?}", a),
       },
       ruby: match bl.get(3) {
         Some(loc) => Some(&a[loc.0..loc.1]),
@@ -93,7 +93,7 @@ fn user_agent_regex(a: &str) -> Option<UserAgent> {
       bundler: None,
       rubygems: match rl.get(1) {
         Some(loc) => &a[loc.0..loc.1],
-        _ => "",
+        _ => panic!("parse failed on {:?}", a),
       },
       ruby: match rl.get(3) {
         Some(loc) => Some(&a[loc.0..loc.1]),
@@ -117,9 +117,9 @@ fn user_agent_regex(a: &str) -> Option<UserAgent> {
   } else if let Some(ua) = gr.captures_read(&mut gl, a) {
     return Some(UserAgent {
       bundler: None,
-      rubygems: match rl.get(1) {
+      rubygems: match gl.get(1) {
         Some(loc) => &a[loc.0..loc.1],
-        _ => "",
+        _ => panic!("parse failed on {:?}", a),
       },
       ruby: None,
       platform: None,
@@ -201,6 +201,40 @@ mod tests {
         command: Some("install"),
         options: Some("orig_path"),
         uid: Some("95ac718b0e500f41"),
+        jruby: None,
+        truffleruby: None,
+        ci: None,
+        gemstash: None,
+      })
+    );
+
+    assert_eq!(
+      user_agent_regex("Ruby, RubyGems/2.4.8 x86_64-linux Ruby/2.1.6 (2015-04-13 patchlevel 336)"),
+      Some(UserAgent {
+        bundler: None,
+        rubygems: "2.4.8",
+        ruby: Some("2.1.6"),
+        platform: Some("x86_64-linux"),
+        command: None,
+        options: None,
+        uid: None,
+        jruby: None,
+        truffleruby: None,
+        ci: None,
+        gemstash: None,
+      })
+    );
+
+    assert_eq!(
+      user_agent_regex("Ruby, Gems 1.1.1"),
+      Some(UserAgent {
+        bundler: None,
+        rubygems: "1.1.1",
+        ruby: None,
+        platform: None,
+        command: None,
+        options: None,
+        uid: None,
         jruby: None,
         truffleruby: None,
         ci: None,

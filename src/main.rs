@@ -120,7 +120,7 @@ fn main() {
     let mut ap = ArgumentParser::new();
     ap.set_description("Parse a RubyGems.org Fastly JSON log file.");
     ap.refer(&mut opts.show_misses).add_option(
-      &["--misses"],
+      &["-m", "--misses"],
       StoreTrue,
       "Print only user agents strings that failed to parse",
     );

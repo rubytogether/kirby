@@ -43,7 +43,7 @@ fn main() {
   }
 
   let mut lineno = 0;
-  let mut counters = HashMap::new();
+  let mut times = HashMap::new();
 
   if verbose {
     println!("Opening log file {}", path);
@@ -61,6 +61,8 @@ fn main() {
 
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_str(l).unwrap();
+    let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
+    let mut counters = times.entry(hour).or_insert(HashMap::new());
 
     if show_misses {
       match user_agent::parse(&r.user_agent) {
@@ -91,6 +93,5 @@ fn main() {
     }
   }
   println!("");
-  println!("{:?}", counters);
-  // println!("Bundler {:?}", counters.get("bundler").unwrap());
+  println!("{:?}", times);
 }

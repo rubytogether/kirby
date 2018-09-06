@@ -23,7 +23,7 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 No. It gets even better if you have multiple cores.
 
       4,200 records/second in Python with 8 worker instances on AWS Glue
-    348,680 records/second in Rust with 8 cores and rayon on a MacBook Pro
+    399,300 records/second in Rust with 8 cores and rayon on a MacBook Pro
 
 ### What does it calculate?
 

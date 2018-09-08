@@ -147,7 +147,7 @@ pub struct Options {
 
 fn main() {
   let mut opts = Options {
-    paths: ["test/sample_10.log.gz".to_string()].to_vec(),
+    paths: ["test/sample_10.log".to_string()].to_vec(),
     unknown: false,
     verbose: false,
   };

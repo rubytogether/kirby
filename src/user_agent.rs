@@ -8,7 +8,6 @@ pub struct UserAgent<'a> {
   pub platform: Option<&'a str>,
   pub command: Option<&'a str>,
   pub options: Option<&'a str>,
-  pub uid: Option<&'a str>,
   pub jruby: Option<&'a str>,
   pub truffleruby: Option<&'a str>,
   pub ci: Option<&'a str>,
@@ -19,7 +18,7 @@ pub fn parse(a: &str) -> Option<UserAgent> {
   lazy_static! {
     // Here is the named regex. The regex created below does not include names, because that interface has borrowing issues 😬
     // \Abundler/(?<bundler>[0-9a-zA-Z.\-]+) rubygems/(?<rubygems>[0-9a-zA-Z.\-]+) ruby/(?<ruby>[0-9a-zA-Z.\-]+) \((?<platform>.*)\) command/(.*?)(?: jruby/(?<jruby>[0-9a-zA-Z.\-]+))?(?: truffleruby/(?<truffleruby>[0-9a-zA-Z.\-]+))?(?: options/(?<options>.*?))?(?: ci/(?<ci>.*?))? ([a-f0-9]{16})(?: Gemstash/(?<gemstash>[0-9a-zA-Z.\-]+))?\z
-    static ref br: Regex = Regex::new(r"\Abundler/([0-9a-zA-Z.\-]+) rubygems/([0-9a-zA-Z.\-]+) ruby/([0-9a-zA-Z.\-]+) \((.*)\) command/(.*?)(?: jruby/([0-9a-zA-Z.\-]+))?(?: truffleruby/([0-9a-zA-Z.\-]+))?(?: options/(.*?))?(?: ci/(.*?))? ([a-f0-9]{16})(?: Gemstash/([0-9a-zA-Z.\-]+))?\z").unwrap();
+    static ref br: Regex = Regex::new(r"\Abundler/([0-9a-zA-Z.\-]+) rubygems/([0-9a-zA-Z.\-]+) ruby/([0-9a-zA-Z.\-]+) \((.*)\) command/(.*?)(?: jruby/([0-9a-zA-Z.\-]+))?(?: truffleruby/([0-9a-zA-Z.\-]+))?(?: options/(.*?))?(?: ci/(.*?))? [a-f0-9]{16}(?: Gemstash/([0-9a-zA-Z.\-]+))?\z").unwrap();
     static ref rr: Regex = Regex::new(r"\A(?:Ruby, )?RubyGems/([0-9a-z.\-]+) (.*) Ruby/([0-9a-z.\-]+) \(.*?\)(?: jruby| truffleruby| rbx)?(?: Gemstash/([0-9a-z.\-]+))?\z").unwrap();
     static ref gr: Regex = Regex::new(r"\ARuby, Gems ([0-9a-z.\-]+)\z").unwrap();
   }
@@ -66,10 +65,6 @@ pub fn parse(a: &str) -> Option<UserAgent> {
         Some(loc) => Some(&a[loc.0..loc.1]),
         _ => None,
       },
-      uid: match bl.get(10) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
       gemstash: match bl.get(11) {
         Some(loc) => Some(&a[loc.0..loc.1]),
         _ => None,
@@ -95,7 +90,6 @@ pub fn parse(a: &str) -> Option<UserAgent> {
       truffleruby: None,
       options: None,
       ci: None,
-      uid: None,
       gemstash: match rl.get(4) {
         Some(loc) => Some(&a[loc.0..loc.1]),
         _ => None,
@@ -115,7 +109,6 @@ pub fn parse(a: &str) -> Option<UserAgent> {
       truffleruby: None,
       options: None,
       ci: None,
-      uid: None,
       gemstash: None,
     });
   } else {
@@ -142,7 +135,6 @@ mod tests {
         platform: Some("x86_64-pc-linux-gnu"),
         command: Some("install"),
         options: Some("orig_path"),
-        uid: Some("95ac718b0e500f41"),
         jruby: None,
         truffleruby: None,
         ci: None,
@@ -159,7 +151,6 @@ mod tests {
         platform: Some("x86_64-linux"),
         command: None,
         options: None,
-        uid: None,
         jruby: None,
         truffleruby: None,
         ci: None,
@@ -176,7 +167,6 @@ mod tests {
         platform: None,
         command: None,
         options: None,
-        uid: None,
         jruby: None,
         truffleruby: None,
         ci: None,

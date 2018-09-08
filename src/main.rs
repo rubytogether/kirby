@@ -25,6 +25,7 @@ mod request;
 mod user_agent;
 
 type StatsMap = HashMap<String, HashMap<String, HashMap<String, i32>>>;
+type NameMap = HashMap<String, HashMap<String, i32>>;
 
 fn combine_stats(left: &StatsMap, right: &StatsMap) -> StatsMap {
   let mut left_times = left.clone();
@@ -77,6 +78,18 @@ fn duplicate_request(r: &request::Request) -> bool {
   }
 }
 
+fn increment(counters: &mut NameMap, name: &str, value: &str) {
+  let map = counters.entry(name.to_string()).or_insert(HashMap::new());
+  let count = map.entry(String::from(value)).or_insert(0);
+  *count += 1;
+}
+
+fn increment_maybe(counters: &mut NameMap, name: &str, maybe_value: Option<&str>) {
+  if let Some(value) = maybe_value {
+    increment(counters, name, value);
+  }
+}
+
 fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
   let mut lineno = 0;
   let mut times = HashMap::new();
@@ -101,28 +114,15 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
         let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
         let counters = times.entry(hour).or_insert(HashMap::new());
 
+        increment(counters, "tls_cipher", &r.tls_cipher);
+        increment(counters, "server_region", &r.server_region);
+
         if let Some(ua) = user_agent::parse(&r.user_agent) {
-          {
-            let rubygems = counters
-              .entry("rubygems".to_string())
-              .or_insert(HashMap::new());
-            let count = rubygems.entry(String::from(ua.rubygems)).or_insert(0);
-            *count += 1;
-          }
-
-          if let Some(bundler_version) = ua.bundler {
-            let bundlers = counters
-              .entry("bundler".to_string())
-              .or_insert(HashMap::new());
-            let count = bundlers.entry(String::from(bundler_version)).or_insert(0);
-            *count += 1;
-          }
-
-          if let Some(ruby_version) = ua.ruby {
-            let rubies = counters.entry("ruby".to_string()).or_insert(HashMap::new());
-            let count = rubies.entry(String::from(ruby_version)).or_insert(0);
-            *count += 1;
-          }
+          increment(counters, "rubygems", ua.rubygems);
+          increment_maybe(counters, "bundler", ua.bundler);
+          increment_maybe(counters, "ruby", ua.ruby);
+          increment_maybe(counters, "platform", ua.platform);
+          increment_maybe(counters, "ci", ua.ci);
         }
       }
       Err(e) => {

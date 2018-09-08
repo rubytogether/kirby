@@ -123,6 +123,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
           increment_maybe(counters, "ruby", ua.ruby);
           increment_maybe(counters, "platform", ua.platform);
           increment_maybe(counters, "ci", ua.ci);
+          increment_maybe(counters, "gemstash", ua.gemstash);
         }
       }
       Err(e) => {

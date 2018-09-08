@@ -63,13 +63,13 @@ fn duplicate_request(r: &request::Request) -> bool {
     ];
   }
 
-  if r.request_path == "/api/v1/dependencies" && r.request_query != "" {
+  if r.request_path == "/api/v1/dependencies" {
     // Requests for dependencies are recursive, and so we want to count only one
     // request per time a user runs a command, rather than every request that was
     // made to satisfy that command. It seems like RubyGems makes one HEAD
     // request with no query, and Bundler makes one GET request with no query,
     // per command that is run. We ignore the rest for stats purposes.
-    true
+    r.request_query != ""
   } else {
     // Versions that don't use the Dependency API make one request, either for
     // specs or for versions. We want to count each of those.
@@ -93,6 +93,7 @@ fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
     match line {
       Ok(l) => {
         let r: request::Request = serde_json::from_str(&l).unwrap();
+
         if duplicate_request(&r) {
           return;
         }

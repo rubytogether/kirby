@@ -113,8 +113,8 @@ fn file_to_stats(path: &str, opts: &Options) -> TimeMap {
           return;
         }
 
-        let hour = [r.timestamp.get(..14).unwrap(), "00:00"].concat();
-        let counters = times.entry(hour).or_insert(HashMap::new());
+        let date = r.timestamp.get(..10).unwrap().to_string();
+        let counters = times.entry(date).or_insert(HashMap::new());
 
         increment(counters, "tls_cipher", &r.tls_cipher);
         increment(counters, "server_region", &r.server_region);

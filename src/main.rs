@@ -1,9 +1,11 @@
 #![feature(test)]
 
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate lazy_static;
+extern crate serde_json;
 
 extern crate argparse;
 extern crate flate2;
@@ -11,7 +13,6 @@ extern crate nom;
 extern crate rayon;
 extern crate regex;
 extern crate serde;
-extern crate serde_json;
 extern crate test;
 extern crate time;
 
@@ -24,10 +25,11 @@ mod file;
 mod request;
 mod user_agent;
 
-type StatsMap = HashMap<String, HashMap<String, HashMap<String, i32>>>;
-type NameMap = HashMap<String, HashMap<String, i32>>;
+type ValueMap = HashMap<String, i32>;
+type NameMap = HashMap<String, ValueMap>;
+type TimeMap = HashMap<String, NameMap>;
 
-fn combine_stats(left: &StatsMap, right: &StatsMap) -> StatsMap {
+fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
   let mut left_times = left.clone();
   for (time, names) in right {
     let left_names = left_times.entry(time.to_string()).or_insert(HashMap::new());
@@ -90,7 +92,7 @@ fn increment_maybe(counters: &mut NameMap, name: &str, maybe_value: Option<&str>
   }
 }
 
-fn file_to_stats(path: &str, opts: &Options) -> StatsMap {
+fn file_to_stats(path: &str, opts: &Options) -> TimeMap {
   let mut lineno = 0;
   let mut times = HashMap::new();
 
@@ -184,5 +186,10 @@ fn main() {
     .reduce_with(|a, b| combine_stats(&a, &b))
     .unwrap();
 
-  println!("{:?}", stats);
+  let output = json!({
+    "ran_at": format!("{}", time::now_utc().rfc3339()),
+    "stats": stats,
+    "files": opts.paths,
+  });
+  println!("{}", output.to_string());
 }

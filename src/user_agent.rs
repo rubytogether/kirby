@@ -174,7 +174,13 @@ mod tests {
       })
     );
 
-    let file = file::reader("test/client_user_agents.txt");
+    use Options;
+    let opts = Options {
+      paths: vec![],
+      verbose: false,
+      unknown: false,
+    };
+    let file = file::reader("test/client_user_agents.txt", &opts);
     for line in file.lines() {
       let input = &line.unwrap();
       match parse(input) {

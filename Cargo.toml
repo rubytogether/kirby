@@ -9,8 +9,10 @@ default-run = "kirby"
 
 [dependencies]
 argparse = "0.2.2"
+aws_lambda = { git = "https://github.com/srijs/rust-aws-lambda" }
 flate2 = { version = "1.0", features = ["zlib"], default-features = false }
 lazy_static = "1.1.0"
+log = "0.4.5"
 nom = "4.0"
 rayon = "1.0.2"
 regex = "1"

@@ -1,0 +1,12 @@
+#!/bin/bash
+if [[ -z "$1" ]]; then
+  echo "USAGE: $0 INPUTFILE"
+  echo "  INPUTFILE is the JSON provided to the lambda function as input."
+  exit 1
+fi
+
+INPUTFILE="$1"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+"$DIR/build-lambda"
+echo "Built new lambda binary"
+docker run --rm -v "$PWD/target/lambda":/var/task lambci/lambda:go1.x kirby-s3 "$(cat $INPUTFILE)"

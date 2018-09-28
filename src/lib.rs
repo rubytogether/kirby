@@ -93,11 +93,34 @@ pub fn print_unknown_user_agents(path: &str, opts: &Options) {
   });
 }
 
-pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
-  let mut lineno = 0;
-  let mut times = HashMap::new();
+pub fn count_line(times: &mut TimeMap, line: String) {
+  let r: request::Request = serde_json::from_str(&line).unwrap();
 
-  file::reader(&path, &opts).lines().for_each(|line| {
+  if duplicate_request(&r) {
+    return;
+  }
+
+  let date = r.timestamp.get(..10).unwrap().to_string();
+  let counters = times.entry(date).or_insert(HashMap::new());
+
+  increment(counters, "tls_cipher", &r.tls_cipher);
+  increment(counters, "server_region", &r.server_region);
+
+  if let Some(ua) = user_agent::parse(&r.user_agent) {
+    increment(counters, "rubygems", ua.rubygems);
+    increment_maybe(counters, "bundler", ua.bundler);
+    increment_maybe(counters, "ruby", ua.ruby);
+    increment_maybe(counters, "platform", ua.platform);
+    increment_maybe(counters, "ci", ua.ci);
+    increment_maybe(counters, "gemstash", ua.gemstash);
+  }
+}
+
+pub fn stream_stats(stream: Box<BufRead>, opts: &Options) -> TimeMap {
+  let mut times = TimeMap::new();
+  let mut lineno = 0;
+
+  stream.lines().for_each(|line| {
     if opts.verbose {
       lineno += 1;
       if lineno % 100_000 == 0 {
@@ -108,26 +131,7 @@ pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
 
     match line {
       Ok(l) => {
-        let r: request::Request = serde_json::from_str(&l).unwrap();
-
-        if duplicate_request(&r) {
-          return;
-        }
-
-        let date = r.timestamp.get(..10).unwrap().to_string();
-        let counters = times.entry(date).or_insert(HashMap::new());
-
-        increment(counters, "tls_cipher", &r.tls_cipher);
-        increment(counters, "server_region", &r.server_region);
-
-        if let Some(ua) = user_agent::parse(&r.user_agent) {
-          increment(counters, "rubygems", ua.rubygems);
-          increment_maybe(counters, "bundler", ua.bundler);
-          increment_maybe(counters, "ruby", ua.ruby);
-          increment_maybe(counters, "platform", ua.platform);
-          increment_maybe(counters, "ci", ua.ci);
-          increment_maybe(counters, "gemstash", ua.gemstash);
-        }
+        count_line(&mut times, l);
       }
       Err(e) => {
         if opts.verbose {
@@ -142,4 +146,9 @@ pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
   }
 
   times
+}
+
+pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
+  let file_stream = file::reader(&path, &opts);
+  stream_stats(file_stream, &opts)
 }

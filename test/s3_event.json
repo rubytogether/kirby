@@ -11,12 +11,12 @@
         "object": {
           "eTag": "0123456789abcdef0123456789abcdef",
           "sequencer": "0A1B2C3D4E5F678901",
-          "key": "HappyFace.jpg",
+          "key": "sample_10.log",
           "size": 1024
         },
         "bucket": {
-          "arn": "arn:aws:s3:::mybucket",
-          "name": "sourcebucket",
+          "arn": "arn:aws:s3:::rubygems-logs-staging.rubytogether",
+          "name": "rubygems-logs-staging.rubytogether",
           "ownerIdentity": {
             "principalId": "EXAMPLE"
           }

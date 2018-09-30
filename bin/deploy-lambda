@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+"$DIR/build-lambda"
+echo "Built new lambda binary"
+
+set -x
+aws lambda update-function-code \
+  --function-name "kirby-s3" \
+  --zip-file "fileb://target/lambda/aws_lambda.zip"
+set +x
+echo "Deployed new lambda binary"

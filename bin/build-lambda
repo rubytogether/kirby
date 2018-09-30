@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 docker build -t aws-lambda:latest -f docker/dockerfile .
 docker run -v "$PWD/target/lambda":/target --rm aws-lambda:latest bash -c "cp * /target/"

@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+
 if [[ -z "$1" ]]; then
   echo "USAGE: $0 INPUTFILE"
   echo "  INPUTFILE is the JSON provided to the lambda function as input."
@@ -10,12 +12,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 "$DIR/build-lambda"
 echo "Built new lambda binary"
 
-aws_key="$(grep key_id ~/.aws/credentials | awk '{ print $3 }')"
-aws_secret="$(grep secret ~/.aws/credentials | awk '{ print $3 }')"
+export AWS_ACCESS_KEY_ID="$(grep key_id ~/.aws/credentials | awk '{ print $3 }')"
+export AWS_SECRET_ACCESS_KEY="$(grep secret ~/.aws/credentials | awk '{ print $3 }')"
 
+set -x
 docker run --rm \
-  -e "AWS_ACCESS_KEY_ID=$aws_key" \
-  -e "AWS_SECRET_ACCESS_KEY=$aws_secret" \
+  -e AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY \
   -v "$PWD/target/lambda":/var/task \
   lambci/lambda:go1.x kirby-s3 \
   "$(cat $INPUTFILE)"

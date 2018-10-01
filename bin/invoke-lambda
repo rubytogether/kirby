@@ -45,12 +45,14 @@ cat <<EOF > "$FILE.json"
 }
 EOF
 
+echo "$KEY"
 set -x
 aws lambda invoke \
   --function-name kirby-s3 \
   --invocation-type Event \
   --payload "file://$FILE.json" \
   "$FILE.txt"
+set +x
 
 [[ -e "$FILE.txt" ]] && cat "$FILE.txt"
 rm "$FILE.json" "$FILE.txt"

@@ -1,0 +1,54 @@
+#!/bin/bash
+set -euo pipefail
+
+KEY="$1"
+
+cat <<EOF > /tmp/s3_event.json
+{
+  "Records": [
+    {
+      "eventVersion": "2.0",
+      "eventTime": "1970-01-01T00:00:00.000Z",
+      "requestParameters": {
+        "sourceIPAddress": "127.0.0.1"
+      },
+      "s3": {
+        "configurationId": "testConfigRule",
+        "object": {
+          "eTag": "0123456789abcdef0123456789abcdef",
+          "sequencer": "0A1B2C3D4E5F678901",
+          "key": "$KEY",
+          "size": 1024
+        },
+        "bucket": {
+          "arn": "arn:aws:s3:::rubygems-logs.rubytogether",
+          "name": "rubygems-logs.rubytogether",
+          "ownerIdentity": {
+            "principalId": "EXAMPLE"
+          }
+        },
+        "s3SchemaVersion": "1.0"
+      },
+      "responseElements": {
+        "x-amz-id-2": "EXAMPLE123/5678abcdefghijklambdaisawesome/mnopqrstuvwxyzABCDEFGH",
+        "x-amz-request-id": "EXAMPLE123456789"
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "ObjectCreated:Put",
+      "userIdentity": {
+        "principalId": "EXAMPLE"
+      },
+      "eventSource": "aws:s3"
+    }
+  ]
+}
+EOF
+
+aws lambda invoke \
+  --function-name kirby-s3 \
+  --invocation-type Event \
+  --payload file:///tmp/s3_event.json \
+  /tmp/output.txt
+
+cat /tmp/output.txt
+rm /tmp/s3_event.json /tmp/output.txt

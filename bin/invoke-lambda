@@ -2,8 +2,9 @@
 set -euo pipefail
 
 KEY="$1"
+FILE="/tmp/s3_event-$$"
 
-cat <<EOF > /tmp/s3_event.json
+cat <<EOF > "$FILE.json"
 {
   "Records": [
     {
@@ -44,11 +45,12 @@ cat <<EOF > /tmp/s3_event.json
 }
 EOF
 
+set -x
 aws lambda invoke \
   --function-name kirby-s3 \
   --invocation-type Event \
-  --payload file:///tmp/s3_event.json \
-  /tmp/output.txt
+  --payload "file://$FILE.json" \
+  "$FILE.txt"
 
-cat /tmp/output.txt
-rm /tmp/s3_event.json /tmp/output.txt
+[[ -e "$FILE.txt" ]] && cat "$FILE.txt"
+rm "$FILE.json" "$FILE.txt"

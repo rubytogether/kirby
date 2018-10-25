@@ -1,33 +1,32 @@
 #!/usr/bin/env ruby
 require 'json'
-
-input = ARGF.read.lines
-input.shift
-input.sort!
-input.uniq!
+require "zlib"
 
 agents = {}
 
-input.each do |line|
-  match = line.match(/^"bundler\/(?<bundler>[a-z0-9.]+) rubygems\/(?<rubygems>[a-z0-9.]+) ruby\/(?<ruby>[a-z0-9.]+) \((?<cpu>[^-]+)-(?<vendor>[^-]+)-(?<os>.+)\) command\/(?<command>.*?) (jruby\/(?<jruby>[a-z0-9.]+) )?(options\/(?<options>.+?) )?(ci\/(?<ci>.+) )?[a-f0-9]+( (?<extra>.+))?"$/)
+Zlib::GzipReader.open(ARGV.first) do |file|
+  file.each_line do |line|
+    data = JSON.parse(line)
+    match = data["user_agent"].match(/^bundler\/(?<bundler>[a-z0-9.]+) rubygems\/(?<rubygems>[a-z0-9.]+) ruby\/(?<ruby>[a-z0-9.]+) \((?<cpu>[^-]+)-(?<vendor>[^-]+)-(?<os>.+)\) command\/(?<command>.*?) (jruby\/(?<jruby>[a-z0-9.]+) )?(options\/(?<options>.+?) )?(ci\/(?<ci>.+) )?[a-f0-9]+( (?<extra>.+))?$/)
 
-  if match.nil?
-    puts "No match! Line was:\n#{line}"
-    next
-  end
+    if match.nil?
+      # puts "No match! Line was:\n#{line}"
+      next
+    end
 
-  info = match.named_captures
-  options = info.delete("options")
+    info = match.named_captures
+    options = info.delete("options")
 
-  options.split(",").each do |name|
-    agents["options"] ||= Hash.new(0)
-    agents["options"][name] += 1
-  end if options
+    options.split(",").each do |name|
+      agents["options"] ||= Hash.new(0)
+      agents["options"][name] += 1
+    end if options
 
-  info.each do |name, value|
-    next if value.nil?
-    agents[name] ||= Hash.new(0)
-    agents[name][value] += 1
+    info.each do |name, value|
+      next if value.nil?
+      agents[name] ||= Hash.new(0)
+      agents[name][value] += 1
+    end
   end
 end
 

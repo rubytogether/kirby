@@ -20,6 +20,13 @@ mod file;
 mod request;
 mod user_agent;
 
+const METADATA_PATHS: [&str; 4] = [
+  "/latest_specs.4.8.gz",
+  "/prerelease_specs.4.8.gz",
+  "/specs.4.8.gz",
+  "/versions"
+];
+
 type ValueMap = HashMap<String, i32>;
 type NameMap = HashMap<String, ValueMap>;
 type TimeMap = HashMap<String, NameMap>;
@@ -47,15 +54,6 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
 }
 
 fn duplicate_request(r: &request::Request) -> bool {
-  lazy_static! {
-    static ref metadata_paths: Vec<String> = vec![
-      "/latest_specs.4.8.gz".to_string(),
-      "/prerelease_specs.4.8.gz".to_string(),
-      "/specs.4.8.gz".to_string(),
-      "/versions".to_string()
-    ];
-  }
-
   if r.request_path == "/api/v1/dependencies" {
     // Requests for dependencies are recursive, and so we want to count only one
     // request per time a user runs a command, rather than every request that was
@@ -66,7 +64,7 @@ fn duplicate_request(r: &request::Request) -> bool {
   } else {
     // Versions that don't use the Dependency API make one request, either for
     // specs or for versions. We want to count each of those.
-    !metadata_paths.contains(&r.request_path)
+    !METADATA_PATHS.contains(&r.request_path)
   }
 }
 
@@ -86,7 +84,7 @@ pub fn print_unknown_user_agents(path: &str, opts: &Options) {
   file::reader(&path, &opts).lines().for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_str(l).unwrap();
-    match user_agent::parse(&r.user_agent) {
+    match user_agent::parse(r.user_agent) {
       None => println!("{}", r.user_agent),
       Some(_) => (),
     }
@@ -103,10 +101,10 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   let date = r.timestamp.get(..10).unwrap().to_string();
   let counters = times.entry(date).or_insert(HashMap::new());
 
-  increment(counters, "tls_cipher", &r.tls_cipher);
-  increment(counters, "server_region", &r.server_region);
+  increment(counters, "tls_cipher", r.tls_cipher);
+  increment(counters, "server_region", r.server_region);
 
-  if let Some(ua) = user_agent::parse(&r.user_agent) {
+  if let Some(ua) = user_agent::parse(r.user_agent) {
     increment(counters, "rubygems", ua.rubygems);
     increment_maybe(counters, "bundler", ua.bundler);
     increment_maybe(counters, "ruby", ua.ruby);

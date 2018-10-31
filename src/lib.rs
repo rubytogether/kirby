@@ -64,7 +64,7 @@ fn duplicate_request(r: &request::Request) -> bool {
   } else {
     // Versions that don't use the Dependency API make one request, either for
     // specs or for versions. We want to count each of those.
-    !METADATA_PATHS.contains(&r.request_path)
+    !METADATA_PATHS.contains(&r.request_path.as_ref())
   }
 }
 
@@ -84,7 +84,7 @@ pub fn print_unknown_user_agents(path: &str, opts: &Options) {
   file::reader(&path, &opts).lines().for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_str(l).unwrap();
-    match user_agent::parse(r.user_agent) {
+    match user_agent::parse(r.user_agent.as_ref()) {
       None => println!("{}", r.user_agent),
       Some(_) => (),
     }
@@ -101,10 +101,10 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   let date = r.timestamp.get(..10).unwrap().to_string();
   let counters = times.entry(date).or_insert(HashMap::new());
 
-  increment(counters, "tls_cipher", r.tls_cipher);
-  increment(counters, "server_region", r.server_region);
+  increment(counters, "tls_cipher", r.tls_cipher.as_ref());
+  increment(counters, "server_region", r.server_region.as_ref());
 
-  if let Some(ua) = user_agent::parse(r.user_agent) {
+  if let Some(ua) = user_agent::parse(r.user_agent.as_ref()) {
     increment(counters, "rubygems", ua.rubygems);
     increment_maybe(counters, "bundler", ua.bundler);
     increment_maybe(counters, "ruby", ua.ruby);

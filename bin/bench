@@ -1,9 +1,9 @@
 #!/bin/bash
 
+cargo build --release
+
 SHA="$(git log -1 --pretty=format:%H)"
 echo "$SHA"
-cargo build --release > /dev/null
-
 export TIMEFORMAT="%3R"
 for i in {1..10}; do
   time target/release/kirby "$@" > /dev/null

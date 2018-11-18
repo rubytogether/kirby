@@ -1,6 +1,8 @@
+use std::borrow::Cow;
+
 #[derive(Deserialize, Debug)]
-pub struct Request {
-  pub timestamp: String,
+pub struct Request<'a> {
+  pub timestamp: Cow<'a, str>,
   // time_elapsed: u8,
   // client_ip: String,
   // client_continent: String,
@@ -13,14 +15,14 @@ pub struct Request {
   // client_connection: String,
   // request: String,
   // request_host: String,
-  pub request_path: String,
-  pub request_query: String,
+  pub request_path: Cow<'a, str>,
+  pub request_query: Cow<'a, str>,
   // request_bytes: u16,
-  pub user_agent: String,
+  pub user_agent: Cow<'a, str>,
   pub http2: bool,
   // pub tls: Option<bool>,
-  pub tls_version: String,
-  pub tls_cipher: String,
+  pub tls_version: Cow<'a, str>,
+  pub tls_cipher: Cow<'a, str>,
   // response_status: String,
   // response_text: String,
   // response_bytes: u16,
@@ -28,6 +30,6 @@ pub struct Request {
   // cache_state: String,
   // cache_lastuse: f32,
   // cache_hits: u16,
-  pub server_region: String,
+  pub server_region: Cow<'a, str>,
   // server_datacenter: String,
 }

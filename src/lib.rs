@@ -83,9 +83,9 @@ fn increment_maybe(counters: &mut NameMap, name: &str, maybe_value: Option<&str>
 }
 
 pub fn print_unknown_user_agents(path: &str, opts: &Options) {
-  file::reader(&path, &opts).lines().for_each(|line| {
+  file::reader(&path, &opts).split(b'\n').for_each(|line| {
     let l = &line.unwrap();
-    let r: request::Request = serde_json::from_str(l).unwrap();
+    let r: request::Request = serde_json::from_slice(l).unwrap();
     match user_agent::parse(&r.user_agent) {
       None => println!("{}", r.user_agent),
       Some(_) => (),

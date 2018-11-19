@@ -5,7 +5,8 @@
 extern crate lazy_static;
 #[macro_use]
 extern crate serde_derive;
-
+#[macro_use]
+extern crate enum_map;
 extern crate flate2;
 extern crate fnv;
 extern crate nom;
@@ -14,6 +15,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate test;
 
+use enum_map::EnumMap;
 use fnv::FnvHashMap;
 use std::io::*;
 
@@ -28,8 +30,20 @@ const METADATA_PATHS: [&str; 4] = [
   "/versions",
 ];
 
+#[derive(Debug, Enum)]
+pub enum FieldName {
+  TlsCipher,
+  ServerRegion,
+  Rubygems,
+  Bundler,
+  Ruby,
+  Platform,
+  Ci,
+  Gemstash,
+}
+
 type ValueMap = FnvHashMap<String, i32>;
-type NameMap = FnvHashMap<String, ValueMap>;
+type NameMap = EnumMap<FieldName, ValueMap>;
 type TimeMap = FnvHashMap<String, NameMap>;
 
 pub struct Options {
@@ -43,11 +57,9 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
   for (time, names) in right {
     let left_names = left_times
       .entry(time.to_string())
-      .or_insert(FnvHashMap::default());
+      .or_insert(enum_map!{_ => FnvHashMap::default()});
     for (name, versions) in names {
-      let left_versions = left_names
-        .entry(name.to_string())
-        .or_insert(FnvHashMap::default());
+      let mut left_versions = &mut left_names[name];
       for (version, count) in versions {
         let left_count = left_versions.entry(version.to_string()).or_insert(0);
         *left_count += count;
@@ -73,15 +85,12 @@ fn duplicate_request(r: &request::Request) -> bool {
   }
 }
 
-fn increment(counters: &mut NameMap, name: &str, value: &str) {
-  let map = counters
-    .entry(name.to_string())
-    .or_insert(FnvHashMap::default());
-  let count = map.entry(String::from(value)).or_insert(0);
+fn increment(counters: &mut NameMap, name: FieldName, value: &str) {
+  let count = counters[name].entry(String::from(value)).or_insert(0);
   *count += 1;
 }
 
-fn increment_maybe(counters: &mut NameMap, name: &str, maybe_value: Option<&str>) {
+fn increment_maybe(counters: &mut NameMap, name: FieldName, maybe_value: Option<&str>) {
   if let Some(value) = maybe_value {
     increment(counters, name, value);
   }
@@ -106,18 +115,19 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   }
 
   let date = r.timestamp.get(..10).unwrap().to_string();
-  let counters = times.entry(date).or_insert(FnvHashMap::default());
+  let counters = times
+    .entry(date)
+    .or_insert(enum_map!{_ => FnvHashMap::default()});
 
-  increment(counters, "tls_cipher", r.tls_cipher.as_ref());
-  increment(counters, "server_region", r.server_region.as_ref());
+  increment(counters, FieldName::TlsCipher, r.tls_cipher.as_ref());
 
   if let Some(ua) = user_agent::parse(r.user_agent.as_ref()) {
-    increment(counters, "rubygems", ua.rubygems);
-    increment_maybe(counters, "bundler", ua.bundler);
-    increment_maybe(counters, "ruby", ua.ruby);
-    increment_maybe(counters, "platform", ua.platform);
-    increment_maybe(counters, "ci", ua.ci);
-    increment_maybe(counters, "gemstash", ua.gemstash);
+    increment(counters, FieldName::Rubygems, ua.rubygems);
+    increment_maybe(counters, FieldName::Bundler, ua.bundler);
+    increment_maybe(counters, FieldName::Ruby, ua.ruby);
+    increment_maybe(counters, FieldName::Platform, ua.platform);
+    increment_maybe(counters, FieldName::Ci, ua.ci);
+    increment_maybe(counters, FieldName::Gemstash, ua.gemstash);
   }
 }
 

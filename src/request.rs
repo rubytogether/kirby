@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 #[derive(Deserialize, Debug)]
 pub struct Request<'a> {
+  #[serde(borrow)]
   pub timestamp: Cow<'a, str>,
   // time_elapsed: u8,
   // client_ip: String,
@@ -15,13 +16,18 @@ pub struct Request<'a> {
   // client_connection: String,
   // request: String,
   // request_host: String,
+  #[serde(borrow)]
   pub request_path: Cow<'a, str>,
+  #[serde(borrow)]
   pub request_query: Cow<'a, str>,
   // request_bytes: u16,
+  #[serde(borrow)]
   pub user_agent: Cow<'a, str>,
   pub http2: bool,
   // pub tls: Option<bool>,
+  #[serde(borrow)]
   pub tls_version: Cow<'a, str>,
+  #[serde(borrow)]
   pub tls_cipher: Cow<'a, str>,
   // response_status: String,
   // response_text: String,
@@ -30,6 +36,7 @@ pub struct Request<'a> {
   // cache_state: String,
   // cache_lastuse: f32,
   // cache_hits: u16,
+  #[serde(borrow)]
   pub server_region: Cow<'a, str>,
   // server_datacenter: String,
 }

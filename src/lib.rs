@@ -7,14 +7,14 @@ extern crate lazy_static;
 extern crate serde_derive;
 
 extern crate flate2;
-extern crate fnv;
+extern crate hashbrown;
 extern crate nom;
 extern crate regex;
 extern crate serde;
 extern crate serde_json;
 extern crate test;
 
-use fnv::FnvHashMap;
+use hashbrown::HashMap;
 use std::io::*;
 
 mod file;
@@ -28,9 +28,9 @@ const METADATA_PATHS: [&str; 4] = [
   "/versions",
 ];
 
-type ValueMap = FnvHashMap<String, i32>;
-type NameMap = FnvHashMap<String, ValueMap>;
-type TimeMap = FnvHashMap<String, NameMap>;
+type ValueMap = HashMap<String, i32>;
+type NameMap = HashMap<String, ValueMap>;
+type TimeMap = HashMap<String, NameMap>;
 
 pub struct Options {
   pub verbose: bool,
@@ -43,11 +43,11 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
   for (time, names) in right {
     let left_names = left_times
       .entry(time.to_string())
-      .or_insert(FnvHashMap::default());
+      .or_insert(HashMap::default());
     for (name, versions) in names {
       let left_versions = left_names
         .entry(name.to_string())
-        .or_insert(FnvHashMap::default());
+        .or_insert(HashMap::default());
       for (version, count) in versions {
         let left_count = left_versions.entry(version.to_string()).or_insert(0);
         *left_count += count;
@@ -76,7 +76,7 @@ fn duplicate_request(r: &request::Request) -> bool {
 fn increment(counters: &mut NameMap, name: &str, value: &str) {
   let map = counters
     .entry(name.to_string())
-    .or_insert(FnvHashMap::default());
+    .or_insert(HashMap::default());
   let count = map.entry(String::from(value)).or_insert(0);
   *count += 1;
 }
@@ -106,7 +106,7 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   }
 
   let date = r.timestamp.get(..10).unwrap().to_string();
-  let counters = times.entry(date).or_insert(FnvHashMap::default());
+  let counters = times.entry(date).or_insert(HashMap::default());
 
   increment(counters, "tls_cipher", r.tls_cipher.as_ref());
   increment(counters, "server_region", r.server_region.as_ref());

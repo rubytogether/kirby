@@ -38,6 +38,7 @@ pub struct Options {
   pub paths: Vec<String>,
 }
 
+#[inline]
 pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
   let mut left_times = left.clone();
   for (time, names) in right {
@@ -153,6 +154,7 @@ pub fn stream_stats(stream: Box<BufRead>, opts: &Options) -> TimeMap {
   times
 }
 
+#[inline]
 pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
   let file_stream = file::reader(&path, &opts);
   stream_stats(file_stream, &opts)

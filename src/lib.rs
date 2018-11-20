@@ -30,7 +30,7 @@ const METADATA_PATHS: [&str; 4] = [
   "/versions",
 ];
 
-#[derive(Debug, Enum)]
+#[derive(Debug, Enum, Serialize)]
 pub enum FieldName {
   TlsCipher,
   ServerRegion,

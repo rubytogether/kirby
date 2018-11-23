@@ -3,6 +3,7 @@ cargo-features = ["default-run"]
 [package]
 name = "kirby"
 version = "0.1.0"
+edition = "2018"
 authors = ["André Arko <andre@arko.net>"]
 repository = "https://rubytogether.org/kirby"
 default-run = "kirby"

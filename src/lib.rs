@@ -1,5 +1,4 @@
 #![feature(test)]
-#![feature(extern_prelude)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -30,16 +29,17 @@ const METADATA_PATHS: [&str; 4] = [
   "/versions",
 ];
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Enum, Serialize)]
 pub enum FieldName {
-  TlsCipher,
-  ServerRegion,
-  Rubygems,
-  Bundler,
-  Ruby,
-  Platform,
-  Ci,
-  Gemstash,
+  tls_cipher,
+  server_region,
+  rubygems,
+  bundler,
+  ruby,
+  platform,
+  ci,
+  gemstash,
 }
 
 type ValueMap = FnvHashMap<String, i32>;
@@ -119,15 +119,15 @@ pub fn count_line(times: &mut TimeMap, line: String) {
     .entry(date)
     .or_insert(enum_map!{_ => FnvHashMap::default()});
 
-  increment(counters, FieldName::TlsCipher, r.tls_cipher.as_ref());
+  increment(counters, FieldName::tls_cipher, r.tls_cipher.as_ref());
 
   if let Some(ua) = user_agent::parse(r.user_agent.as_ref()) {
-    increment(counters, FieldName::Rubygems, ua.rubygems);
-    increment_maybe(counters, FieldName::Bundler, ua.bundler);
-    increment_maybe(counters, FieldName::Ruby, ua.ruby);
-    increment_maybe(counters, FieldName::Platform, ua.platform);
-    increment_maybe(counters, FieldName::Ci, ua.ci);
-    increment_maybe(counters, FieldName::Gemstash, ua.gemstash);
+    increment(counters, FieldName::rubygems, ua.rubygems);
+    increment_maybe(counters, FieldName::bundler, ua.bundler);
+    increment_maybe(counters, FieldName::ruby, ua.ruby);
+    increment_maybe(counters, FieldName::platform, ua.platform);
+    increment_maybe(counters, FieldName::ci, ua.ci);
+    increment_maybe(counters, FieldName::gemstash, ua.gemstash);
   }
 }
 

@@ -119,10 +119,10 @@ pub fn parse(a: &str) -> Option<UserAgent> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use file;
+  use crate::file;
   use std::io::BufRead;
   use test::Bencher;
-  use user_agent::UserAgent;
+  use crate::user_agent::UserAgent;
 
   #[test]
   fn test_parse() {
@@ -174,7 +174,7 @@ mod tests {
       })
     );
 
-    use Options;
+    use crate::Options;
     let opts = Options {
       paths: vec![],
       verbose: false,

@@ -16,7 +16,7 @@ use futures::stream::Stream;
 use futures::Future;
 use kirby::stream_stats;
 use kirby::Options;
-use lambda::event::s3::S3Event;
+use crate::lambda::event::s3::S3Event;
 use rusoto_core::region::Region;
 use rusoto_s3::*;
 use std::io::BufRead;

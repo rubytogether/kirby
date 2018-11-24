@@ -7,7 +7,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate enum_map;
 extern crate flate2;
-extern crate fnv;
+extern crate hashbrown;
 extern crate nom;
 extern crate regex;
 extern crate serde;
@@ -15,7 +15,7 @@ extern crate serde_json;
 extern crate test;
 
 use enum_map::EnumMap;
-use fnv::FnvHashMap;
+use hashbrown::HashMap;
 use std::io::*;
 
 mod file;
@@ -42,9 +42,9 @@ pub enum FieldName {
   gemstash,
 }
 
-type ValueMap = FnvHashMap<String, i32>;
+type ValueMap = HashMap<String, i32>;
 type NameMap = EnumMap<FieldName, ValueMap>;
-type TimeMap = FnvHashMap<String, NameMap>;
+type TimeMap = HashMap<String, NameMap>;
 
 pub struct Options {
   pub verbose: bool,
@@ -57,7 +57,7 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
   for (time, names) in right {
     let left_names = left_times
       .entry(time.to_string())
-      .or_insert(enum_map!{_ => FnvHashMap::default()});
+      .or_insert(enum_map!{_ => HashMap::default()});
     for (name, versions) in names {
       let mut left_versions = &mut left_names[name];
       for (version, count) in versions {
@@ -117,7 +117,7 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   let date = r.timestamp.get(..10).unwrap().to_string();
   let counters = times
     .entry(date)
-    .or_insert(enum_map!{_ => FnvHashMap::default()});
+    .or_insert(enum_map!{_ => HashMap::default()});
 
   increment(counters, FieldName::tls_cipher, r.tls_cipher.as_ref());
 

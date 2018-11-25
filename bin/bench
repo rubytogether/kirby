@@ -1,10 +1,10 @@
 #!/bin/bash
 
-which hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
+command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
 test -e logs/example.log.gz || curl -O logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
 
 cargo build --bin kirby --release
 
 echo
 echo "kirby commit $(git log -1 --pretty=format:%H)"
-hyperfine --warmup 3 'target/release/kirby logs/example.log.gz'
+hyperfine --warmup 3 'target/release/kirby logs/example.log.gz' "$@"

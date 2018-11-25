@@ -163,6 +163,7 @@ pub fn stream_stats(stream: Box<BufRead>, opts: &Options) -> TimeMap {
   times
 }
 
+#[inline]
 pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
   let file_stream = file::reader(&path, &opts);
   stream_stats(file_stream, &opts)

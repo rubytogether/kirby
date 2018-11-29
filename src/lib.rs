@@ -6,13 +6,6 @@ extern crate lazy_static;
 extern crate serde_derive;
 #[macro_use]
 extern crate enum_map;
-extern crate flate2;
-extern crate hashbrown;
-extern crate nom;
-extern crate regex;
-extern crate serde;
-extern crate serde_json;
-extern crate test;
 
 use enum_map::EnumMap;
 use hashbrown::HashMap;
@@ -59,7 +52,7 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
       .entry(time.to_string())
       .or_insert(enum_map!{_ => HashMap::default()});
     for (name, versions) in names {
-      let mut left_versions = &mut left_names[name];
+      let left_versions = &mut left_names[name];
       for (version, count) in versions {
         let left_count = left_versions.entry(version.to_string()).or_insert(0);
         *left_count += count;

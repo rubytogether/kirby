@@ -3,25 +3,21 @@ extern crate log;
 #[macro_use]
 extern crate serde_json;
 
-extern crate aws_lambda as lambda;
-extern crate flate2;
-extern crate futures;
 extern crate kirby;
-extern crate rusoto_core;
-extern crate rusoto_s3;
-extern crate time;
 
+use aws_lambda as lambda;
+use crate::lambda::event::s3::S3Event;
 use flate2::read::GzDecoder;
 use futures::stream::Stream;
 use futures::Future;
-use kirby::stream_stats;
 use kirby::Options;
-use crate::lambda::event::s3::S3Event;
 use rusoto_core::region::Region;
 use rusoto_s3::*;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
+
+use kirby::stream_stats;
 
 fn read_object(bucket_name: &str, key: &str) -> Box<BufRead> {
   let get_req = GetObjectRequest {

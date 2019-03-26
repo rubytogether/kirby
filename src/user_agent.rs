@@ -118,6 +118,8 @@ pub fn parse(a: &str) -> Option<UserAgent> {
 
 #[cfg(test)]
 mod tests {
+  extern crate test;
+
   use super::*;
   use crate::file;
   use std::io::BufRead;

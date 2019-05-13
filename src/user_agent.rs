@@ -29,46 +29,19 @@ pub fn parse(a: &str) -> Option<UserAgent> {
 
   if let Some(_) = br.captures_read(&mut bl, a) {
     return Some(UserAgent {
-      bundler: match bl.get(1) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
+      bundler: bl.get(1).and_then(|loc| Some(&a[loc.0..loc.1]),
       rubygems: match bl.get(2) {
         Some(loc) => &a[loc.0..loc.1],
         _ => panic!("parse failed on {:?}", a),
       },
-      ruby: match bl.get(3) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      platform: match bl.get(4) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      command: match bl.get(5) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      jruby: match bl.get(6) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      truffleruby: match bl.get(7) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      options: match bl.get(8) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      ci: match bl.get(9) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      gemstash: match bl.get(11) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
+      ruby: match bl.get(3).and_then(|loc| Some(&a[loc.0..loc.1])),
+      platform: bl.get(4).and_then(|log| Some(&a[loc.0..loc.1])),
+      command: bl.get(5).and_then(|loc| Some(&a[loc.0..loc.1])),
+      jruby: bl.get(6).and_then(|loc| Some(&a[loc.0..loc.1])),
+      truffleruby: bl.get(7).and_then(|loc| Some(&a[loc.0..loc.1])),
+      options: bl.get(8).and_then(|loc| Some(&a[loc.0..loc.1])),
+      ci: bl.get(9).and_then(|loc| Some(&a[loc.0..loc.1])),
+      gemstash: bl.get(11).and_then(|loc| Some(&a[loc.0..loc.1])),
     });
   } else if let Some(_) = rr.captures_read(&mut rl, a) {
     return Some(UserAgent {
@@ -77,23 +50,14 @@ pub fn parse(a: &str) -> Option<UserAgent> {
         Some(loc) => &a[loc.0..loc.1],
         _ => panic!("parse failed on {:?}", a),
       },
-      ruby: match rl.get(3) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
-      platform: match rl.get(2) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
+      ruby: rl.get(3).and_then(|loc| Some(&a[loc.0..loc.1])),
+      platform: rl.get(2).and_then(|loc| Some(&a[loc.0..loc.1])),
       command: None,
       jruby: None,
       truffleruby: None,
       options: None,
       ci: None,
-      gemstash: match rl.get(4) {
-        Some(loc) => Some(&a[loc.0..loc.1]),
-        _ => None,
-      },
+      gemstash: rl.get(4).and_then(|loc| Some(&a[loc.0..loc.1])),
     });
   } else if let Some(_) = gr.captures_read(&mut gl, a) {
     return Some(UserAgent {

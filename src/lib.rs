@@ -93,9 +93,8 @@ pub fn print_unknown_user_agents(path: &str, opts: &Options) {
   file::reader(&path, &opts).split(b'\n').for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_slice(l).unwrap();
-    match user_agent::parse(r.user_agent.as_ref()) {
-      None => println!("{}", r.user_agent),
-      Some(_) => (),
+    if let None = user_agent::parse(r.user_agent.as_ref()) {
+      println!("{}", r.user_agent);
     }
   });
 }

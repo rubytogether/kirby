@@ -34,7 +34,7 @@ pub fn parse(a: &str) -> Option<UserAgent> {
         Some(loc) => &a[loc.0..loc.1],
         _ => panic!("parse failed on {:?}", a),
       },
-      ruby: match bl.get(3).and_then(|loc| Some(&a[loc.0..loc.1])),
+      ruby: bl.get(3).and_then(|loc| Some(&a[loc.0..loc.1])),
       platform: bl.get(4).and_then(|log| Some(&a[loc.0..loc.1])),
       command: bl.get(5).and_then(|loc| Some(&a[loc.0..loc.1])),
       jruby: bl.get(6).and_then(|loc| Some(&a[loc.0..loc.1])),

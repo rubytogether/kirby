@@ -5,7 +5,8 @@ pub struct Request<'a> {
   #[serde(borrow)]
   pub timestamp: Cow<'a, str>,
   // time_elapsed: u8,
-  // client_ip: String,
+  #[serde(borrow)]
+  pub client_ip: Cow<'a, str>,
   // client_continent: String,
   // client_country: String,
   // client_region: String,

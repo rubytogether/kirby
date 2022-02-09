@@ -9,6 +9,8 @@ extern crate enum_map;
 
 use enum_map::EnumMap;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::net::IpAddr;
 use std::io::*;
 
 mod file;
@@ -35,7 +37,50 @@ pub enum FieldName {
   gemstash,
 }
 
-type ValueMap = HashMap<String, i32>;
+type UserIdentifier = IpAddr;
+
+#[derive(Serialize)]
+pub struct ValueUniqueCounter {
+  total: usize,
+  unique: usize,
+  #[serde(skip_serializing)]
+  index: HashSet<UserIdentifier>,
+}
+
+impl ValueUniqueCounter {
+  fn new() -> ValueUniqueCounter {
+    ValueUniqueCounter {
+      total: 0,
+      unique: 0,
+      index: HashSet::new(),
+    }
+  }
+
+  fn increment(&mut self, key: UserIdentifier) {
+    self.total += 1;
+    if self.index.insert(key) {
+      self.unique += 1;
+    }
+  }
+
+  fn combine(&mut self, other: &ValueUniqueCounter) {
+    self.total += other.total;
+    self.index = &self.index | &other.index;
+    self.unique = self.index.len();
+  }
+}
+
+impl Clone for ValueUniqueCounter {
+  fn clone(&self) -> Self {
+    ValueUniqueCounter {
+      total: self.total,
+      unique: self.unique,
+      index: self.index.clone(),
+    }
+  }
+}
+
+type ValueMap = HashMap<String, ValueUniqueCounter>;
 type NameMap = EnumMap<FieldName, ValueMap>;
 type TimeMap = HashMap<String, NameMap>;
 
@@ -53,9 +98,9 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
       .or_insert(enum_map!{_ => HashMap::default()});
     for (name, versions) in names {
       let left_versions = &mut left_names[name];
-      for (version, count) in versions {
-        let left_count = left_versions.entry(version.to_string()).or_insert(0);
-        *left_count += count;
+      for (version, counter) in versions {
+        let left_counter = left_versions.entry(version.to_string()).or_insert(ValueUniqueCounter::new());
+        left_counter.combine(counter);
       }
     }
   }
@@ -78,14 +123,14 @@ fn duplicate_request(r: &request::Request) -> bool {
   }
 }
 
-fn increment(counters: &mut NameMap, name: FieldName, value: &str) {
-  let count = counters[name].entry(String::from(value)).or_insert(0);
-  *count += 1;
+fn increment(counters: &mut NameMap, name: FieldName, value: &str, key: UserIdentifier) {
+  let counter = counters[name].entry(String::from(value)).or_insert(ValueUniqueCounter::new());
+  counter.increment(key);
 }
 
-fn increment_maybe(counters: &mut NameMap, name: FieldName, maybe_value: Option<&str>) {
+fn increment_maybe(counters: &mut NameMap, name: FieldName, maybe_value: Option<&str>, key: UserIdentifier) {
   if let Some(value) = maybe_value {
-    increment(counters, name, value);
+    increment(counters, name, value, key);
   }
 }
 
@@ -112,15 +157,16 @@ pub fn count_line(times: &mut TimeMap, line: String) {
     .entry(date)
     .or_insert(enum_map!{_ => HashMap::default()});
 
-  increment(counters, FieldName::tls_cipher, r.tls_cipher.as_ref());
+  let user_key = r.client_ip.parse().expect("ipaddr parse error");
 
+  increment(counters, FieldName::tls_cipher, r.tls_cipher.as_ref(), user_key);
   if let Some(ua) = user_agent::parse(r.user_agent.as_ref()) {
-    increment(counters, FieldName::rubygems, ua.rubygems);
-    increment_maybe(counters, FieldName::bundler, ua.bundler);
-    increment_maybe(counters, FieldName::ruby, ua.ruby);
-    increment_maybe(counters, FieldName::platform, ua.platform);
-    increment_maybe(counters, FieldName::ci, ua.ci);
-    increment_maybe(counters, FieldName::gemstash, ua.gemstash);
+    increment(counters, FieldName::rubygems, ua.rubygems, user_key);
+    increment_maybe(counters, FieldName::bundler, ua.bundler, user_key);
+    increment_maybe(counters, FieldName::ruby, ua.ruby, user_key);
+    increment_maybe(counters, FieldName::platform, ua.platform, user_key);
+    increment_maybe(counters, FieldName::ci, ua.ci, user_key);
+    increment_maybe(counters, FieldName::gemstash, ua.gemstash, user_key);
   }
 }
 

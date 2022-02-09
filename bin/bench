@@ -4,7 +4,7 @@ command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with 
 
 if [[ -z "$1" ]]; then
   mkdir -p logs
-  test -e logs/example.log.gz || curl -Lo logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
+  test -e logs/example.log.gz || curl -Lo logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample-2/example.log.gz"
   LOG="logs/example.log.gz"
 else
   LOG="$1"

@@ -1,11 +1,16 @@
 use std::borrow::Cow;
 
+fn default_ip<'a>() -> Cow<'a, str> {
+  return Cow::from("0.0.0.0")
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Request<'a> {
   #[serde(borrow)]
   pub timestamp: Cow<'a, str>,
   // time_elapsed: u8,
   #[serde(borrow)]
+  #[serde(default="default_ip")]
   pub client_ip: Cow<'a, str>,
   // client_continent: String,
   // client_country: String,

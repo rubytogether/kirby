@@ -1,7 +1,8 @@
 #!/bin/bash
 
 command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
-test -e logs/example.log.gz || curl -O logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
+mkdir -p logs
+test -e logs/example.log.gz || curl -Lo logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
 
 cargo build --bin kirby --release
 

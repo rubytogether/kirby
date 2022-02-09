@@ -8,14 +8,13 @@ extern crate kirby;
 use aws_lambda as lambda;
 use crate::lambda::event::s3::S3Event;
 use flate2::read::GzDecoder;
-use futures::stream::Stream;
-use futures::Future;
 use kirby::Options;
 use rusoto_core::region::Region;
 use rusoto_s3::*;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
+use std::io::Read;
 
 use kirby::stream_stats;
 
@@ -32,10 +31,12 @@ fn read_object(bucket_name: &str, key: &str) -> Box<dyn BufRead> {
     .sync()
     .expect("Couldn't GET object");
 
-  let stream = result.body.unwrap();
-  let bytes = stream
-    .concat2()
-    .wait()
+  let mut bytes = Vec::new();
+  result
+    .body
+    .unwrap()
+    .into_blocking_read()
+    .read_to_end(&mut bytes)
     .expect("Couldn't read object body stream");
 
   if key.ends_with("gz") {

@@ -8,7 +8,7 @@ extern crate serde_derive;
 extern crate enum_map;
 
 use enum_map::EnumMap;
-use hashbrown::HashMap;
+use std::collections::HashMap;
 use std::io::*;
 
 mod file;
@@ -124,7 +124,7 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   }
 }
 
-pub fn stream_stats(stream: Box<BufRead>, opts: &Options) -> TimeMap {
+pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
   let mut times = TimeMap::default();
   let mut lineno = 0;
 

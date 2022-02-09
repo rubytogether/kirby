@@ -19,7 +19,7 @@ use std::io::Cursor;
 
 use kirby::stream_stats;
 
-fn read_object(bucket_name: &str, key: &str) -> Box<BufRead> {
+fn read_object(bucket_name: &str, key: &str) -> Box<dyn BufRead> {
   let get_req = GetObjectRequest {
     bucket: bucket_name.to_owned(),
     key: key.to_owned(),

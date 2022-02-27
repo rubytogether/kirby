@@ -49,7 +49,8 @@ RUN cargo install serde || true
 
 # Cache dependencies by building completely empty rust files
 ADD ./Cargo.toml .
-RUN mkdir -p src/bin && touch src/lib.rs && touch src/bin/kirby.rs
+RUN mkdir -p src/bin && touch src/lib.rs && \
+      echo "fn main() {}" > src/bin/kirby.rs
 RUN cargo build --target $BUILD_TARGET --release
 
 ADD ./src src

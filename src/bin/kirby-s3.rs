@@ -8,7 +8,6 @@ extern crate kirby;
 use aws_lambda as lambda;
 use crate::lambda::event::s3::S3Event;
 use flate2::read::GzDecoder;
-use kirby::Options;
 use rusoto_core::region::Region;
 use rusoto_s3::*;
 use std::io::BufRead;
@@ -16,6 +15,7 @@ use std::io::BufReader;
 use std::io::Cursor;
 use std::io::Read;
 
+use kirby::Options;
 use kirby::stream_stats;
 
 fn read_object(bucket_name: &str, key: &str) -> Box<dyn BufRead> {

@@ -28,7 +28,7 @@ RUN tar -xvzf musl-$MUSL_VERSION.tar.gz \
     && make install \
     && cd ..
 
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.58 -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
 
 ENV BUILD_TARGET=x86_64-unknown-linux-musl
 RUN rustup target add $BUILD_TARGET

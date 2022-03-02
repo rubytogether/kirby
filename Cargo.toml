@@ -25,6 +25,5 @@ serde_json = "1.0"
 time = "0.1"
 
 [profile.release]
-strip = true
 debug = false
 opt-level = 3

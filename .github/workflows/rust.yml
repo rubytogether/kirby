@@ -15,6 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
+      id: rust
       with:
         toolchain: nightly
         profile: minimal
@@ -33,12 +34,13 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
   cross:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
+      id: rust
       with:
         toolchain: nightly
         profile: minimal
@@ -57,7 +59,7 @@ jobs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-cargo-musl-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - uses: actions/upload-artifact@v2
       with:
         name: kirby-s3-musl

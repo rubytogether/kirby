@@ -27,3 +27,5 @@ time = "0.1"
 [profile.release]
 debug = false
 opt-level = 3
+strip = true
+lto = true

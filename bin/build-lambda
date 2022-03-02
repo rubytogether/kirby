@@ -1,5 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-docker build -t aws-lambda:latest -f docker/dockerfile --platform linux/amd64 .
-docker run -v "$PWD/target/lambda":/target --rm aws-lambda:latest bash -c "cp * /target/"
+if [[ ! $(which x86_64-unknown-linux-musl-gcc) ]]; then
+  brew tap messense/macos-cross-toolchains
+  brew install x86_64-unknown-linux-musl
+fi
+
+if [[ ! $(which cross) ]]; then
+  cargo install cross
+fi
+
+export CC_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-gcc"
+export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="x86_64-unknown-linux-musl-gcc"
+cross build --target x86_64-unknown-linux-musl --release

@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
+  build_and_test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -22,21 +22,18 @@ jobs:
     - uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --verbose
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        profile: minimal
-        override: true
     - uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release
-
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
   cross:
     runs-on: ubuntu-latest
     steps:
@@ -52,3 +49,16 @@ jobs:
         use-cross: true
         command: build
         args: --release --target x86_64-unknown-linux-musl
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-musl-${{ hashFiles('**/Cargo.lock') }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: kirby-s3-musl
+        path: target/target/x86_64-unknown-linux-musl/release/kirby-s3

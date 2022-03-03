@@ -21,9 +21,14 @@ jobs:
         toolchain: nightly
         profile: minimal
         default: true
-    - run: /home/runner/.cargo/bin/cargo -V
-    - run: /home/runner/.cargo/bin/cargo +nightly test
-    - run: /home/runner/.cargo/bin/cargo +nightly build
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: build
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: test
     - uses: actions/cache@v2
       with:
         path: |

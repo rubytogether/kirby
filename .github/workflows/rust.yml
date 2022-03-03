@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: rm /home/runner/.cargo/bin/rustfmt
+    - run: rm /home/runner/.cargo/bin/rustfmt /home/runner/.cargo/bin/cargo-fmt
     - uses: actions-rs/toolchain@v1
       id: rust
       with:

@@ -22,13 +22,8 @@ jobs:
         profile: minimal
         default: true
     - run: /home/runner/.cargo/bin/cargo -V
-    - run: /home/runner/.cargo/bin/cargo test
-    - uses: actions-rs/cargo@v1
-      with:
-        command: test
-    - uses: actions-rs/cargo@v1
-      with:
-        command: build
+    - run: /home/runner/.cargo/bin/cargo +nightly test
+    - run: /home/runner/.cargo/bin/cargo +nightly build
     - uses: actions/cache@v2
       with:
         path: |

@@ -33,4 +33,4 @@ It counts Bundler, RubyGems, and Ruby versions, in hourly buckets, and prints th
 
 ### Tell me more about how this happened.
 
-Okay, I wrote [a blog post with details about creating this library](https://andre.arko.net/2018/10/25/parsing-logs-230x-faster-with-rust/).
+Okay, I wrote [a blog post with details about creating this library](https://andre.arko.net/2018/10/25/parsing-logs-230x-faster-with-rust/), and [a follow up about more optimizations](https://andre.arko.net/2019/01/11/parsing-logs-faster-with-rust-continued/).

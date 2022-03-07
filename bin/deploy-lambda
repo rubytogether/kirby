@@ -6,8 +6,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Built new lambda binary"
 
 set -x
+zip target/x86_64-unknown-linux-musl/release/aws_lambda.zip \
+  target/x86_64-unknown-linux-musl/release/kirby-s3
+
 aws lambda update-function-code \
   --function-name "kirby-s3" \
-  --zip-file "fileb://target/lambda/aws_lambda.zip"
+  --zip-file "fileb://target/x86_64-unknown-linux-musl/release/aws_lambda.zip"
 set +x
 echo "Deployed new lambda binary"

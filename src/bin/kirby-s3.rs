@@ -14,6 +14,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
 use std::io::Read;
+use percent_encoding::percent_decode;
 
 use kirby::Options;
 use kirby::stream_stats;
@@ -70,7 +71,8 @@ fn main() {
 
     for record in input.records {
       if let Some(bucket_name) = record.s3.bucket.name {
-        if let Some(key) = record.s3.object.key {
+        if let Some(url_key) = record.s3.object.key {
+          let key = percent_decode(url_key.as_bytes()).decode_utf8()?;
           info!(
             "{} downloading {}/{}",
             time::now_utc().rfc3339(),

@@ -952,6 +952,7 @@ dependencies = [
  "lazy_static",
  "log",
  "nom",
+ "percent-encoding",
  "rayon",
  "regex",
  "rusoto_core",

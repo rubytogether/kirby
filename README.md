@@ -15,14 +15,16 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 ### Wait, _how_ fast?
 
         ~525 records/second/cpu in Python on AWS Glue
-    ~300,000 records/second/cpu in Rust with regex
+    ~300,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
+    ~550,000 records/second/cpu in Rust on a 2021 M1 MacBook Pro
 
 ### Are you kidding me?
 
 No. The latest version (which I am now benchmarking without also running `cargo build` 🤦🏻‍♂️) can parse records really, really fast.
 
         ~4,200 records/second in Python with 8 worker instances on AWS Glue
-    ~1,085,000 records/second in Rust with 8 cores and rayon on a MacBook Pro
+    ~1,085,000 records/second in Rust with 8 cores and rayon on an Intel MacBook Pro
+    ~3,195,000 records/second in Rust with 8 cores and rayon on an M1 MacBook Pro
 
 ### What does it calculate?
 

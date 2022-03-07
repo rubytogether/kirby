@@ -14,8 +14,9 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 
 ### Wait, _how_ fast?
 
-        ~525 records/second/cpu in Python on AWS Glue
-    ~300,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
+        ~525 records/second/cpu in Python on Apache Spark in AWS Glue
+     ~14,000 records/second/cpu in Ruby on a 2018 Intel MacBook Pro
+    ~353,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
     ~550,000 records/second/cpu in Rust on a 2021 M1 MacBook Pro
 
 ### Are you kidding me?
@@ -23,8 +24,8 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 No. The latest version (which I am now benchmarking without also running `cargo build` 🤦🏻‍♂️) can parse records really, really fast.
 
         ~4,200 records/second in Python with 8 worker instances on AWS Glue
-    ~1,085,000 records/second in Rust with 8 cores and rayon on an Intel MacBook Pro
-    ~3,195,000 records/second in Rust with 8 cores and rayon on an M1 MacBook Pro
+    ~1,085,000 records/second in Rust and rayon on an 8-core Intel MacBook Pro
+    ~3,195,000 records/second in Rust and rayon on a 10-core M1 MacBook Pro
 
 ### What does it calculate?
 

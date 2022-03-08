@@ -50,7 +50,7 @@ set -x
 aws lambda invoke \
   --function-name kirby-s3 \
   --invocation-type Event \
-  --payload "file://$FILE.json" \
+  --payload "fileb://$FILE.json" \
   "$FILE.txt"
 set +x
 

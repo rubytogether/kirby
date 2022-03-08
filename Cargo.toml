@@ -27,6 +27,6 @@ time = "0.1"
 
 [profile.release]
 debug = false
+lto = true
 opt-level = 3
 strip = true
-lto = true

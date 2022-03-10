@@ -33,4 +33,5 @@ RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata" \
 
 echo
 echo "kirby commit $(git log -1 --pretty=format:%H)"
+echo "$(gzcat $LOG | wc -l) records total"
 hyperfine --warmup 3 "target/release/kirby $LOG" "$@"

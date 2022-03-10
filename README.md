@@ -12,6 +12,8 @@ For an 80MB gzipped log file containing 915,427 JSON event objects (which is 1.0
 
 This is... very good. For comparison, a Python script that used AWS Glue to do something similar took about _30 minutes_. My first approach of writing a `nom` parser-combinator to parse the User Agent field, instead of using a regex, took 18.7 seconds. Processing a gigabyte of almost a million JSON objects into useful histograms in less than 8 seconds just blows my mind. But then I figured out how to use Rayon, and now it can parse 8 gzipped log files in parallel on an 8-core MacBook Pro, and that's super fast.
 
+Then Rust got more optimized and Apple released the M1, and it got still faster. Finally, and I found the [profile-guided optimization](https://doc.rust-lang.org/rustc/profile-guided-optimization.html) docs, and it improved even more than I thought was still possible.
+
 ### Wait, _how_ fast?
 
         ~525 records/second/cpu in Python on Apache Spark in AWS Glue

@@ -11,25 +11,27 @@ else
   shift
 fi
 
-# STEP 0: Make sure there is no left-over profiling data from previous runs
-rm -rf /tmp/pgo-data
+if [[ -z "$PGO" ]]; then
+  # STEP 0: Make sure there is no left-over profiling data from previous runs
+  rm -rf /tmp/pgo-data
 
-# STEP 1: Build the instrumented binaries
-RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" \
-  cargo build --release
+  # STEP 1: Build the instrumented binaries
+  RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data -Cllvm-args=-vp-counters-per-site=4" \
+    cargo build --release
 
-# STEP 2: Run the instrumented binaries with some typical data
-ls logs/* | xargs -L1 target/release/kirby
+  # STEP 2: Run the instrumented binaries with some typical data
+  ls logs/* | xargs -L1 target/release/kirby
 
-# STEP 3: Merge the `.profraw` files into a `.profdata` file
-$(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata) \
-  merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+  # STEP 3: Merge the `.profraw` files into a `.profdata` file
+  $(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata) \
+    merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
 
-# STEP 4: Use the `.profdata` file for guiding optimizations
-RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata" \
-    cargo build --release --bin kirby
-
-# cargo build --bin kirby --release
+  # STEP 4: Use the `.profdata` file for guiding optimizations
+  RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata" \
+      cargo build --release --bin kirby
+else
+  cargo build --bin kirby --release
+fi
 
 echo
 echo "kirby commit $(git log -1 --pretty=format:%H)"

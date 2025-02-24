@@ -89,22 +89,21 @@ pub struct Options {
   pub paths: Vec<String>,
 }
 
-pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
-  let mut left_times = left.clone();
+pub fn combine_stats(mut left: TimeMap, right: TimeMap) -> TimeMap {
   for (time, names) in right {
-    let left_names = left_times
+    let left_names = left
       .entry(time.to_string())
-      .or_insert(enum_map!{_ => HashMap::default()});
+      .or_default();
     for (name, versions) in names {
       let left_versions = &mut left_names[name];
       for (version, counter) in versions {
         let left_counter = left_versions.entry(version.to_string()).or_insert(ValueUniqueCounter::new());
-        left_counter.combine(counter);
+        left_counter.combine(&counter);
       }
     }
   }
 
-  left_times
+  left
 }
 
 fn duplicate_request(r: &request::Request) -> bool {

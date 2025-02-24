@@ -43,7 +43,7 @@ fn main() {
     .paths
     .par_iter()
     .map(|path| kirby::file_stats(path, &opts))
-    .reduce_with(|a, b| kirby::combine_stats(&a, &b))
+    .reduce_with( kirby::combine_stats)
     .unwrap();
 
   let output = json!({

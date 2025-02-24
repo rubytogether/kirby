@@ -42,7 +42,7 @@ fn main() {
   let stats = opts
     .paths
     .par_iter()
-    .map(|path| kirby::file_stats(&path, &opts))
+    .map(|path| kirby::file_stats(path, &opts))
     .reduce_with(|a, b| kirby::combine_stats(&a, &b))
     .unwrap();
 
@@ -51,5 +51,5 @@ fn main() {
     "stats": stats,
     "files": opts.paths,
   });
-  println!("{}", output.to_string());
+  println!("{}", output);
 }

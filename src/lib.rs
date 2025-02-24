@@ -114,7 +114,7 @@ fn duplicate_request(r: &request::Request) -> bool {
     // made to satisfy that command. It seems like RubyGems makes one HEAD
     // request with no query, and Bundler makes one GET request with no query,
     // per command that is run. We ignore the rest for stats purposes.
-    r.request_query != ""
+    !r.request_query.is_empty()
   } else {
     // Versions that don't use the Dependency API make one request, either for
     // specs or for versions. We want to count each of those.
@@ -134,13 +134,10 @@ fn increment_maybe(counters: &mut NameMap, name: FieldName, maybe_value: Option<
 }
 
 pub fn print_unknown_user_agents(path: &str, opts: &Options) {
-  file::reader(&path, &opts).split(b'\n').for_each(|line| {
+  file::reader(path, opts).split(b'\n').for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_slice(l).unwrap();
-    match user_agent::parse(r.user_agent.as_ref()) {
-      None => println!("{}", r.user_agent),
-      Some(_) => (),
-    }
+    if user_agent::parse(r.user_agent.as_ref()).is_none() { println!("{}", r.user_agent) }
   });
 }
 
@@ -195,7 +192,7 @@ pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
   });
 
   if opts.verbose {
-    println!("");
+    println!();
   }
 
   times
@@ -203,6 +200,6 @@ pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
 
 #[inline]
 pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
-  let file_stream = file::reader(&path, &opts);
-  stream_stats(file_stream, &opts)
+  let file_stream = file::reader(path, opts);
+  stream_stats(file_stream, opts)
 }

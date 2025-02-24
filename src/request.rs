@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 fn default_ip<'a>() -> Cow<'a, str> {
-  return Cow::from("0.0.0.0")
+  Cow::from("0.0.0.0")
 }
 
 #[derive(Deserialize, Debug)]
@@ -29,10 +29,10 @@ pub struct Request<'a> {
   // request_bytes: u16,
   #[serde(borrow)]
   pub user_agent: Cow<'a, str>,
-  pub http2: bool,
+  // pub http2: bool,
   // pub tls: Option<bool>,
-  #[serde(borrow)]
-  pub tls_version: Cow<'a, str>,
+  // #[serde(borrow)]
+  // pub tls_version: Cow<'a, str>,
   #[serde(borrow)]
   pub tls_cipher: Cow<'a, str>,
   // response_status: String,
@@ -42,7 +42,7 @@ pub struct Request<'a> {
   // cache_state: String,
   // cache_lastuse: f32,
   // cache_hits: u16,
-  #[serde(borrow)]
-  pub server_region: Cow<'a, str>,
+  // #[serde(borrow)]
+  // pub server_region: Cow<'a, str>,
   // server_datacenter: String,
 }

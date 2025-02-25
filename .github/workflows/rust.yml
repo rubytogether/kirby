@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,58 +13,58 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: rm /home/runner/.cargo/bin/rustfmt
-    - uses: actions-rs/toolchain@v1
-      id: rust
-      with:
-        toolchain: nightly
-        profile: minimal
-        default: true
-    - uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        command: build
-    - uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        command: test
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/checkout@v3
+      - run: rm /home/runner/.cargo/bin/rustfmt
+      - uses: actions-rs/toolchain@v1
+        id: rust
+        with:
+          toolchain: nightly
+          profile: minimal
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: test
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
   cross:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - run: rm /home/runner/.cargo/bin/rustfmt /home/runner/.cargo/bin/cargo-fmt
-    - uses: actions-rs/toolchain@v1
-      id: rust
-      with:
-        toolchain: nightly
-        profile: minimal
-        override: true
-        target: x86_64-unknown-linux-musl 
-    - uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        command: build
-        args: --release --target x86_64-unknown-linux-musl
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - uses: actions/upload-artifact@v2
-      with:
-        name: kirby-s3-musl
-        path: target/x86_64-unknown-linux-musl/release/kirby-s3
+      - uses: actions/checkout@v2
+      - run: rm /home/runner/.cargo/bin/rustfmt /home/runner/.cargo/bin/cargo-fmt
+      - uses: actions-rs/toolchain@v1
+        id: rust
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          target: x86_64-unknown-linux-musl
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target x86_64-unknown-linux-musl
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ steps.rust.rustc_hash }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kirby-s3-musl
+          path: target/x86_64-unknown-linux-musl/release/kirby-s3

@@ -11,8 +11,8 @@ pub fn reader(filename: &str, opts: &super::Options) -> Box<dyn BufRead> {
   }
 
   let path = Path::new(filename);
-  let file = match File::open(&path) {
-    Err(why) => panic!("couldn't open {}: {}", path.display(), why.to_string()),
+  let file = match File::open(path) {
+    Err(why) => panic!("couldn't open {}: {}", path.display(), why),
     Ok(file) => file,
   };
 

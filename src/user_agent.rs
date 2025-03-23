@@ -27,8 +27,8 @@ pub fn parse(a: &str) -> Option<UserAgent> {
   let mut rl = RUBY_PATTERN.capture_locations();
   let mut gl = GEM_PATTERN.capture_locations();
 
-  if let Some(_) = BUNDLER_PATTERN.captures_read(&mut bl, a) {
-    return Some(UserAgent {
+  if BUNDLER_PATTERN.captures_read(&mut bl, a).is_some() {
+    Some(UserAgent {
       bundler: match bl.get(1) {
         Some(loc) => Some(&a[loc.0..loc.1]),
         _ => None,
@@ -69,8 +69,8 @@ pub fn parse(a: &str) -> Option<UserAgent> {
         Some(loc) => Some(&a[loc.0..loc.1]),
         _ => None,
       },
-    });
-  } else if let Some(_) = RUBY_PATTERN.captures_read(&mut rl, a) {
+    })
+  } else if RUBY_PATTERN.captures_read(&mut rl, a).is_some() {
     return Some(UserAgent {
       bundler: None,
       rubygems: match rl.get(1) {
@@ -95,7 +95,7 @@ pub fn parse(a: &str) -> Option<UserAgent> {
         _ => None,
       },
     });
-  } else if let Some(_) = GEM_PATTERN.captures_read(&mut gl, a) {
+  } else if GEM_PATTERN.captures_read(&mut gl, a).is_some() {
     return Some(UserAgent {
       bundler: None,
       rubygems: match gl.get(1) {
@@ -185,10 +185,7 @@ mod tests {
     let file = file::reader("test/client_user_agents.txt", &opts);
     for line in file.lines() {
       let input = &line.unwrap();
-      match parse(input) {
-        Some(_) => assert!(true),
-        None => panic!("couldn't parse {:?}", input),
-      }
+      parse(input).unwrap_or_else(|| panic!("couldn't parse {:?}", input));
     }
   }
 

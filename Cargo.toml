@@ -1,7 +1,7 @@
 [package]
 name = "kirby"
 version = "0.1.0"
-edition = "2018"
+edition = "2024"
 authors = ["André Arko <andre@arko.net>"]
 repository = "https://rubytogether.org/kirby"
 default-run = "kirby"
@@ -15,7 +15,7 @@ futures = "0.3"
 lazy_static = "1.1.0"
 log = "0.4.5"
 nom = "4.0"
-percent-encoding = "2.1.0" 
+percent-encoding = "2.1.0"
 rayon = "1.0.2"
 regex = "1"
 rusoto_core = { version="0.42", default-features=false, features=["rustls"] }

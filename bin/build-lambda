@@ -10,10 +10,7 @@ if [[ ! $(which cross) ]]; then
   cargo install cross
 fi
 
-export CC_x86_64_unknown_linux_musl="x86_64-unknown-linux-musl-gcc"
-export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="x86_64-unknown-linux-musl-gcc"
-
-if [[ -n "$PGO" ]]; then
+if [[ -n "${PGO:-}" ]]; then
   # STEP 0: Make sure there is no left-over profiling data from previous runs
   rm -rf /tmp/pgo-data
 

@@ -38,7 +38,7 @@ pub enum FieldName {
 
 type UserIdentifier = IpAddr;
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct ValueUniqueCounter {
   total: usize,
   unique: usize,
@@ -47,14 +47,6 @@ pub struct ValueUniqueCounter {
 }
 
 impl ValueUniqueCounter {
-  fn new() -> ValueUniqueCounter {
-    ValueUniqueCounter {
-      total: 0,
-      unique: 0,
-      index: HashSet::new(),
-    }
-  }
-
   fn increment(&mut self, key: UserIdentifier) {
     self.total += 1;
     if self.index.insert(key) {
@@ -98,7 +90,7 @@ pub fn combine_stats(left: &TimeMap, right: &TimeMap) -> TimeMap {
     for (name, versions) in names {
       let left_versions = &mut left_names[name];
       for (version, counter) in versions {
-        let left_counter = left_versions.entry(version.to_string()).or_insert(ValueUniqueCounter::new());
+        let left_counter = left_versions.entry(version.to_string()).or_default();
         left_counter.combine(counter);
       }
     }
@@ -123,7 +115,7 @@ fn duplicate_request(r: &request::Request) -> bool {
 }
 
 fn increment(counters: &mut NameMap, name: FieldName, value: &str, key: UserIdentifier) {
-  let counter = counters[name].entry(String::from(value)).or_insert(ValueUniqueCounter::new());
+  let counter = counters[name].entry(String::from(value)).or_default();
   counter.increment(key);
 }
 

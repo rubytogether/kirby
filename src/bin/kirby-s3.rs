@@ -1,12 +1,11 @@
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate serde_json;
 
 extern crate kirby;
 
 use aws_lambda_events::event::s3::S3Event;
 use flate2::read::GzDecoder;
+use lambda_runtime::tracing::{self, info, warn};
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use percent_encoding::percent_decode;
 use rusoto_core::region::Region;
@@ -105,6 +104,7 @@ async fn func(event: LambdaEvent<S3Event>) -> Result<(), Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+    tracing::init_default_subscriber();
     let func = service_fn(func);
     lambda_runtime::run(func).await
 }

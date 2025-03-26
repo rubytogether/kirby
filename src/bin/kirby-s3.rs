@@ -95,7 +95,7 @@ async fn func(event: LambdaEvent<S3Event>) -> Result<(), Error> {
             time::now_utc().rfc3339(),
             &result_key
         );
-        write_object(bucket_name, &result_key, &json!(content).to_string());
+        write_object(bucket_name, &result_key, &json!(content).to_string()).await;
 
         info!("{} done with {}", time::now_utc().rfc3339(), &key);
     }

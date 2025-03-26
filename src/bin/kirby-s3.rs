@@ -4,6 +4,7 @@ extern crate serde_json;
 extern crate kirby;
 
 use aws_lambda_events::event::s3::S3Event;
+use aws_lambda_events::sns::SnsEventObj;
 use flate2::read::GzDecoder;
 use lambda_runtime::tracing::{self, info, warn};
 use lambda_runtime::{Error, LambdaEvent, service_fn};
@@ -13,7 +14,7 @@ use rusoto_s3::*;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Cursor;
-use std::io::Read;
+use tokio::io::AsyncReadExt;
 
 use kirby::Options;
 use kirby::stream_stats;
@@ -35,8 +36,9 @@ async fn read_object(bucket_name: &str, key: &str) -> Box<dyn BufRead> {
     result
         .body
         .unwrap()
-        .into_blocking_read()
+        .into_async_read()
         .read_to_end(&mut bytes)
+        .await
         .expect("Couldn't read object body stream");
 
     if key.ends_with("gz") {
@@ -58,7 +60,7 @@ async fn write_object(bucket_name: &str, key: &str, body: &str) -> rusoto_s3::Pu
     client.put_object(req).await.expect("Couldn't PUT object")
 }
 
-async fn func(event: LambdaEvent<S3Event>) -> Result<(), Error> {
+async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
     let opts = Options {
         paths: vec![],
         verbose: false,
@@ -66,37 +68,39 @@ async fn func(event: LambdaEvent<S3Event>) -> Result<(), Error> {
     };
 
     for record in event.payload.records {
-        let (bucket_name, url_key) = match (&record.s3.bucket.name, &record.s3.object.key) {
-            (Some(bucket_name), Some(url_key)) => (bucket_name, url_key),
-            _ => {
-                warn!("missing bucket name or key for record {:?}", record);
-                continue;
-            }
-        };
+        for record in record.sns.message.records {
+            let (bucket_name, url_key) = match (&record.s3.bucket.name, &record.s3.object.key) {
+                (Some(bucket_name), Some(url_key)) => (bucket_name, url_key),
+                _ => {
+                    warn!("missing bucket name or key for record {:?}", record);
+                    continue;
+                }
+            };
 
-        let key = percent_decode(url_key.as_bytes()).decode_utf8()?;
-        info!(
-            "{} downloading {}/{}",
-            time::now_utc().rfc3339(),
-            bucket_name,
-            &key
-        );
-        let reader = read_object(bucket_name, &key).await;
+            let key = percent_decode(url_key.as_bytes()).decode_utf8()?;
+            info!(
+                "{} downloading {}/{}",
+                time::now_utc().rfc3339(),
+                bucket_name,
+                &key
+            );
+            let reader = read_object(bucket_name, &key).await;
 
-        info!("{} calculating stats...", time::now_utc().rfc3339());
-        let content = stream_stats(reader, &opts);
+            info!("{} calculating stats...", time::now_utc().rfc3339());
+            let content = stream_stats(reader, &opts);
 
-        let result_key = [&key, ".json"]
-            .concat()
-            .replace("fastly_json", "fastly_stats");
-        info!(
-            "{} uploading results to {}",
-            time::now_utc().rfc3339(),
-            &result_key
-        );
-        write_object(bucket_name, &result_key, &json!(content).to_string()).await;
+            let result_key = [&key, ".json"]
+                .concat()
+                .replace("fastly_json", "fastly_stats");
+            info!(
+                "{} uploading results to {}",
+                time::now_utc().rfc3339(),
+                &result_key
+            );
+            write_object(bucket_name, &result_key, &json!(content).to_string()).await;
 
-        info!("{} done with {}", time::now_utc().rfc3339(), &key);
+            info!("{} done with {}", time::now_utc().rfc3339(), &key);
+        }
     }
 
     Ok(())

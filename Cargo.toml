@@ -18,13 +18,13 @@ nom = "4.0"
 percent-encoding = "2.1.0"
 rayon = "1.0.2"
 regex = "1"
-rusoto_core = { version="0.48", default-features=false, features=["rustls"] }
-rusoto_s3 = { version="0.48", default-features=false, features=["rustls"] }
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 time = "0.1"
 tokio = "1.44.1"
+aws-config = { version = "1.6.0", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1.79.0", features = ["rt-tokio"] }
 
 [profile.release]
 debug = false

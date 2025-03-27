@@ -36,8 +36,8 @@ No. The latest version can parse records really, really fast.
      ~1,085,000 records/second in Rust with rayon on an 8-core Intel MacBook Pro
      ~3,195,000 records/second in Rust with rayon on a 10-core M1 MacBook Pro
      ~3,583,000 records/second in Rust with rayon on M1 with PGO
-    ~10,789,000 records/second in Rust with rayon on a 16-core M4 Max with PGO
     ~12,004,000 records/second in Rust with rayon on a 20-core M1 Ultra with PGO
+    ~13,076,000 records/second in Rust with rayon on a 16-core M4 Max with PGO
     ~22,559,000 records/second in Rust with rayon on a 32-core Ryzen 9 9950X with PGO
 
 ### What does it calculate?

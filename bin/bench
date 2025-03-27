@@ -3,9 +3,6 @@ set -euo pipefail
 
 command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
 
-LLVM_PROFDATA="$(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata)"
-command -v $LLVM_PROFDATA > /dev/null || (echo "You need to install 'llvm-profdata' byrunning 'rustup component add llvm-tools-preview'" && exit 1)
-
 if [[ -z "${1:-}" ]]; then
   mkdir -p logs
   test -e logs/example.log.gz || curl -Lo logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
@@ -16,6 +13,9 @@ else
 fi
 
 if [[ -n "${PGO:-}" ]]; then
+  LLVM_PROFDATA="$(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata 2> /dev/null || true)"
+  test -n "$LLVM_PROFDATA" && command -v $LLVM_PROFDATA > /dev/null || (echo "You need to install 'llvm-profdata' byrunning 'rustup component add llvm-tools-preview'" && exit 1)
+
   # STEP 0: Make sure there is no left-over profiling data from previous runs
   rm -rf /tmp/pgo-data
   cargo clean

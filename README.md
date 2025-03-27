@@ -20,7 +20,9 @@ Then Rust got more optimized and Apple released the M1, and it got still faster.
      ~14,000 records/second/cpu in Ruby on a 2018 Intel MacBook Pro
     ~353,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
     ~550,000 records/second/cpu in Rust on a 2021 M1 MacBook Pro
-    ~638,000 records/second/cpu in Rust on M1 with profile-guided optimization
+    ~638,000 records/second/cpu in Rust on a 2021 M1 with PGO
+    ~935,500 records/second/cpu in Rust on a 2025 M4 Max MacBook Pro
+    ~983,500 records/second/cpu in Rust on a 2025 M4 Max with PGO
 
 ### Are you kidding me?
 

@@ -14,22 +14,29 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 
 Then Rust got more optimized and Apple released the M1, and it got still faster. Finally, and I found the [profile-guided optimization](https://doc.rust-lang.org/rustc/profile-guided-optimization.html) docs, and it improved even more than I thought was still possible.
 
+Most recently, it also turned out there was [a highly contended mutex around the regular expressions](https://github.com/rubytogether/kirby/pull/37) and that bought the multi-core version something like 40-60% more speed.
+
 ### Wait, _how_ fast?
 
-        ~525 records/second/cpu in Python on Apache Spark in AWS Glue
-     ~14,000 records/second/cpu in Ruby on a 2018 Intel MacBook Pro
-    ~353,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
-    ~550,000 records/second/cpu in Rust on a 2021 M1 MacBook Pro
-    ~638,000 records/second/cpu in Rust on M1 with profile-guided optimization
+          ~525 records/second/cpu in Python on Apache Spark in AWS Glue
+       ~14,000 records/second/cpu in Ruby on a 2018 Intel MacBook Pro
+      ~353,000 records/second/cpu in Rust on a 2018 Intel MacBook Pro
+      ~550,000 records/second/cpu in Rust on a 2021 M1 MacBook Pro
+      ~638,000 records/second/cpu in Rust on a 2021 M1 with PGO
+      ~935,500 records/second/cpu in Rust on a 2025 M4 Max MacBook Pro
+      ~983,500 records/second/cpu in Rust on a 2025 M4 Max with PGO
+    ~1,240,000 records/second/cpu in Rust on a 2024 Ryzen 9 9950X with PGO
 
 ### Are you kidding me?
 
-No. The latest version (which I am now benchmarking without also running `cargo build` 🤦🏻‍♂️) can parse records really, really fast.
+No. The latest version can parse records really, really fast.
 
-        ~4,200 records/second in Python with 8 worker instances on AWS Glue
-    ~1,085,000 records/second in Rust with rayon on an 8-core Intel MacBook Pro
-    ~3,195,000 records/second in Rust with rayon on a 10-core M1 MacBook Pro
-    ~3,583,000 records/second in Rust with rayon on M1 with profile-guided optimization
+         ~4,200 records/second in Python with 8 worker instances on AWS Glue
+     ~1,085,000 records/second in Rust with rayon on an 8-core Intel MacBook Pro
+     ~3,195,000 records/second in Rust with rayon on a 10-core M1 MacBook Pro
+     ~3,583,000 records/second in Rust with rayon on M1 with PGO
+    ~10,789,000 records/second in Rust with rayon on a 16-core M4 Max with PGO
+    ~22,559,000 records/second in Rust with rayon on a 32-core Ryzen 9 9950X with PGO
 
 ### What does it calculate?
 

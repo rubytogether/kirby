@@ -25,7 +25,7 @@ if [[ -n "${PGO:-}" ]]; then
     cargo build --release --bin kirby
 
   # STEP 2: Run the instrumented binaries with some typical data
-  ls logs/* | xargs -L1 target/release/kirby
+  ls logs/*.gz | xargs -I{} target/release/kirby "{}"
 
   # STEP 3: Merge the `.profraw` files into a `.profdata` file
   $LLVM_PROFDATA merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data

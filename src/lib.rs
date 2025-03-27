@@ -1,7 +1,5 @@
 #![feature(test)]
 #[macro_use]
-extern crate lazy_static;
-#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate enum_map;
@@ -126,14 +124,15 @@ fn increment_maybe(counters: &mut NameMap, name: FieldName, maybe_value: Option<
 }
 
 pub fn print_unknown_user_agents(path: &str, opts: &Options) {
+    let ctx = user_agent::ParseCtx::new();
   file::reader(path, opts).split(b'\n').for_each(|line| {
     let l = &line.unwrap();
     let r: request::Request = serde_json::from_slice(l).unwrap();
-    if user_agent::parse(r.user_agent.as_ref()).is_none() { println!("{}", r.user_agent) }
+    if ctx.parse(r.user_agent.as_ref()).is_none() { println!("{}", r.user_agent) }
   });
 }
 
-pub fn count_line(times: &mut TimeMap, line: &str) {
+pub fn count_line(ctx: &user_agent::ParseCtx, times: &mut TimeMap, line: &str) {
   let r: request::Request = serde_json::from_str(&line).unwrap();
 
   if duplicate_request(&r) {
@@ -148,7 +147,7 @@ pub fn count_line(times: &mut TimeMap, line: &str) {
   let user_key = r.client_ip.parse().expect("ipaddr parse error");
 
   increment(counters, FieldName::tls_cipher, r.tls_cipher.as_ref(), user_key);
-  if let Some(ua) = user_agent::parse(r.user_agent.as_ref()) {
+  if let Some(ua) = ctx.parse(r.user_agent.as_ref()) {
     increment(counters, FieldName::rubygems, ua.rubygems, user_key);
     increment_maybe(counters, FieldName::bundler, ua.bundler, user_key);
     increment_maybe(counters, FieldName::ruby, ua.ruby, user_key);
@@ -162,6 +161,7 @@ pub fn stream_stats<'a>(mut stream: Box<dyn BufRead + 'a>, opts: &Options) -> Ti
   let mut times = TimeMap::default();
   let mut lineno = 0;
 
+  let ctx = user_agent::ParseCtx::new();
   let mut line = String::with_capacity(1024*1024);
 
   loop {
@@ -185,7 +185,7 @@ pub fn stream_stats<'a>(mut stream: Box<dyn BufRead + 'a>, opts: &Options) -> Ti
       }
     }
 
-    count_line(&mut times, line.as_str());
+    count_line(&ctx, &mut times, line.as_str());
   }
 
   if opts.verbose {

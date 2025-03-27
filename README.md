@@ -14,6 +14,8 @@ This is... very good. For comparison, a Python script that used AWS Glue to do s
 
 Then Rust got more optimized and Apple released the M1, and it got still faster. Finally, and I found the [profile-guided optimization](https://doc.rust-lang.org/rustc/profile-guided-optimization.html) docs, and it improved even more than I thought was still possible.
 
+Most recently, it also turned out there was [a highly contended mutex around the regular expressions](https://github.com/rubytogether/kirby/pull/37) and that bought the multi-core version something like 40-60% more speed.
+
 ### Wait, _how_ fast?
 
           ~525 records/second/cpu in Python on Apache Spark in AWS Glue
@@ -23,7 +25,7 @@ Then Rust got more optimized and Apple released the M1, and it got still faster.
       ~638,000 records/second/cpu in Rust on a 2021 M1 with PGO
       ~935,500 records/second/cpu in Rust on a 2025 M4 Max MacBook Pro
       ~983,500 records/second/cpu in Rust on a 2025 M4 Max with PGO
-    ~1,240,000 records/second/cpu in Rust on a Ryzen 9 9950X with PGO
+    ~1,240,000 records/second/cpu in Rust on a 2024 Ryzen 9 9950X with PGO
 
 ### Are you kidding me?
 

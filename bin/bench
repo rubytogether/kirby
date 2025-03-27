@@ -22,7 +22,7 @@ if [[ -n "${PGO:-}" ]]; then
 
   # STEP 1: Build the instrumented binaries
   RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data -Cllvm-args=-vp-counters-per-site=4" \
-    cargo build --release
+    cargo build --release --bin kirby
 
   # STEP 2: Run the instrumented binaries with some typical data
   ls logs/* | xargs -L1 target/release/kirby

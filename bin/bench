@@ -1,8 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 
 command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
 
-if [[ -z "$1" ]]; then
+LLVM_PROFDATA="$(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata)"
+command -v $LLVM_PROFDATA > /dev/null || (echo "You need to install 'llvm-profdata' byrunning 'rustup component add llvm-tools-preview'" && exit 1)
+
+if [[ -z "${1:-}" ]]; then
   mkdir -p logs
   test -e logs/example.log.gz || curl -Lo logs/example.log.gz "https://github.com/rubytogether/kirby/releases/download/log-sample/example.log.gz"
   LOG="logs/example.log.gz"
@@ -11,9 +15,10 @@ else
   shift
 fi
 
-if [[ -n "$PGO" ]]; then
+if [[ -n "${PGO:-}" ]]; then
   # STEP 0: Make sure there is no left-over profiling data from previous runs
   rm -rf /tmp/pgo-data
+  cargo clean
 
   # STEP 1: Build the instrumented binaries
   RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data -Cllvm-args=-vp-counters-per-site=4" \
@@ -23,8 +28,7 @@ if [[ -n "$PGO" ]]; then
   ls logs/* | xargs -L1 target/release/kirby
 
   # STEP 3: Merge the `.profraw` files into a `.profdata` file
-  $(ls ~/.rustup/toolchains/*/lib/rustlib/*/bin/llvm-profdata) \
-    merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+  $LLVM_PROFDATA merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
 
   # STEP 4: Use the `.profdata` file for guiding optimizations
   RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata" \

@@ -133,7 +133,7 @@ pub fn print_unknown_user_agents(path: &str, opts: &Options) {
   });
 }
 
-pub fn count_line(times: &mut TimeMap, line: String) {
+pub fn count_line(times: &mut TimeMap, line: &str) {
   let r: request::Request = serde_json::from_str(&line).unwrap();
 
   if duplicate_request(&r) {
@@ -158,11 +158,25 @@ pub fn count_line(times: &mut TimeMap, line: String) {
   }
 }
 
-pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
+pub fn stream_stats<'a>(mut stream: Box<dyn BufRead + 'a>, opts: &Options) -> TimeMap {
   let mut times = TimeMap::default();
   let mut lineno = 0;
 
-  stream.lines().for_each(|line| {
+  let mut line = String::with_capacity(1024*1024);
+
+  loop {
+    line.clear();
+    match stream.read_line(&mut line) {
+      Ok(0) => break,
+      Ok(_) => {}
+      Err(e) => {
+        if opts.verbose {
+          eprintln!("Failed to read line:\n  {}", e);
+        }
+        continue;
+      }
+    }
+
     if opts.verbose {
       lineno += 1;
       if lineno % 100_000 == 0 {
@@ -171,17 +185,8 @@ pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
       }
     }
 
-    match line {
-      Ok(l) => {
-        count_line(&mut times, l);
-      }
-      Err(e) => {
-        if opts.verbose {
-          eprintln!("Failed to read line:\n  {}", e);
-        }
-      }
-    }
-  });
+    count_line(&mut times, line.as_str());
+  }
 
   if opts.verbose {
     println!();
@@ -194,4 +199,46 @@ pub fn stream_stats(stream: Box<dyn BufRead>, opts: &Options) -> TimeMap {
 pub fn file_stats(path: &str, opts: &Options) -> TimeMap {
   let file_stream = file::reader(path, opts);
   stream_stats(file_stream, opts)
+}
+
+
+#[cfg(test)]
+mod tests {
+    extern crate test;
+
+    use super::*;
+    use std::fs::File;
+    use std::io::BufReader;
+    use test::Bencher;
+
+    #[test]
+    fn test_stream_stats() {
+        let file = File::open("test/sample_500.log").unwrap();
+        let reader = BufReader::new(file);
+        let opts = Options {
+            verbose: false,
+            unknown: false,
+            paths: vec![],
+        };
+        let times = stream_stats(Box::new(reader), &opts);
+        assert_eq!(times.len(), 45);
+    }
+
+    #[bench]
+    fn bench_stream_stats_sample_500(b: &mut Bencher) {
+        let mut logs = Vec::new();
+        File::open("test/sample_500.log")
+            .unwrap()
+            .read_to_end(&mut logs)
+            .unwrap();
+        let opts = Options {
+            verbose: false,
+            unknown: false,
+            paths: vec![],
+        };
+        b.iter(|| {
+            let reader = Box::new(BufReader::new(logs.as_slice()));
+            stream_stats(reader, &opts);
+        });
+    }
 }

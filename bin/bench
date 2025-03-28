@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-command -v hyperfine > /dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
+command -v hyperfine >/dev/null || (echo "You need to install 'hyperfine' with cargo or brew." && exit 1)
 
 if [[ -z "${1:-}" ]]; then
   mkdir -p logs
@@ -32,7 +32,7 @@ if [[ -n "${PGO:-}" ]]; then
 
   # STEP 4: Use the `.profdata` file for guiding optimizations
   RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata" \
-      cargo build --release --bin kirby
+    cargo build --release --bin kirby
 else
   cargo build --bin kirby --release
 fi

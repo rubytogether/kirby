@@ -29,6 +29,13 @@ pub struct ParseCtx {
     generic_pattern: Regex,
 }
 
+pub struct ParseCaptureLocations {
+    bundler_captures: regex::CaptureLocations,
+    ruby_captures: regex::CaptureLocations,
+    gem_captures: regex::CaptureLocations,
+    generic_captures: regex::CaptureLocations,
+}
+
 impl ParseCtx {
     /*
      * Here are some more regexes that indirect commented out so they didn't get moved to ParseCtx.
@@ -50,10 +57,24 @@ impl ParseCtx {
         }
     }
 
-    pub fn parse<'line>(&self, a: &'line str) -> Option<UserAgent<'line>> {
-        let mut bl = self.bundler_pattern.capture_locations();
-        let mut rl = self.ruby_pattern.capture_locations();
-        let mut gl = self.gem_pattern.capture_locations();
+    pub fn capture_locations(&self) -> ParseCaptureLocations {
+        ParseCaptureLocations {
+            bundler_captures: self.bundler_pattern.capture_locations(),
+            ruby_captures: self.ruby_pattern.capture_locations(),
+            gem_captures: self.gem_pattern.capture_locations(),
+            generic_captures: self.generic_pattern.capture_locations(),
+        }
+    }
+
+    pub fn parse<'line>(
+        &self,
+        capture_locations: &mut ParseCaptureLocations,
+        a: &'line str,
+    ) -> Option<UserAgent<'line>> {
+        let mut bl = &mut capture_locations.bundler_captures;
+        let mut rl = &mut capture_locations.ruby_captures;
+        let mut gl = &mut capture_locations.gem_captures;
+
         if self.bundler_pattern.captures_read(&mut bl, a).is_some() {
             Some(UserAgent {
                 agent_name: Some("bundler"),
@@ -150,10 +171,20 @@ impl ParseCtx {
                 ci: None,
                 gemstash: None,
             });
-        } else if let Some(captures) = self.generic_pattern.captures(a) {
+        } else if self
+            .generic_pattern
+            .captures_read(&mut capture_locations.generic_captures, a)
+            .is_some()
+        {
             return Some(UserAgent {
-                agent_name: captures.get(1).map(|m| m.as_str()),
-                agent_version: captures.get(2).map(|m| m.as_str()),
+                agent_name: capture_locations
+                    .generic_captures
+                    .get(1)
+                    .map(|m| &a[m.0..m.1]),
+                agent_version: capture_locations
+                    .generic_captures
+                    .get(2)
+                    .map(|m| &a[m.0..m.1]),
                 ..Default::default()
             });
         } else {
@@ -169,7 +200,8 @@ where
     lazy_static! {
         static ref USER_AGENT_PARSER: ParseCtx = ParseCtx::new();
     };
-    let user_agent = USER_AGENT_PARSER.parse(ua);
+    let mut capture_locations = USER_AGENT_PARSER.capture_locations();
+    let user_agent = USER_AGENT_PARSER.parse(&mut capture_locations, ua);
     serde::Serialize::serialize(&user_agent, serializer)
 }
 
@@ -206,8 +238,10 @@ mod tests {
     #[test]
     fn test_parse() {
         let ctx = ParseCtx::new();
+        let mut capture_locations = ctx.capture_locations();
         assert_eq!(
             ctx.parse(
+                &mut capture_locations,
                 "bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41"
             ),
             Some(UserAgent {
@@ -227,7 +261,10 @@ mod tests {
         );
 
         assert_eq!(
-            ctx.parse("Ruby, RubyGems/2.4.8 x86_64-linux Ruby/2.1.6 (2015-04-13 patchlevel 336)"),
+            ctx.parse(
+                &mut capture_locations,
+                "Ruby, RubyGems/2.4.8 x86_64-linux Ruby/2.1.6 (2015-04-13 patchlevel 336)"
+            ),
             Some(UserAgent {
                 agent_name: Some("rubygems"),
                 agent_version: Some("2.4.8"),
@@ -245,7 +282,7 @@ mod tests {
         );
 
         assert_eq!(
-            ctx.parse("Ruby, Gems 1.1.1"),
+            ctx.parse(&mut capture_locations, "Ruby, Gems 1.1.1"),
             Some(UserAgent {
                 agent_name: Some("gems"),
                 agent_version: Some("1.1.1"),
@@ -271,7 +308,7 @@ mod tests {
         let file = file::reader("test/client_user_agents.txt", &opts);
         for line in file.lines() {
             let input = &line.unwrap();
-            ctx.parse(input)
+            ctx.parse(&mut capture_locations, input)
                 .unwrap_or_else(|| panic!("couldn't parse {:?}", input));
         }
     }
@@ -279,17 +316,18 @@ mod tests {
     #[bench]
     fn bench_parse(b: &mut Bencher) {
         let ctx = ParseCtx::new();
+        let mut capture_locations = ctx.capture_locations();
         b.iter(|| {
-      ctx.parse("bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a");
-      ctx.parse("bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41");
-      ctx.parse("bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install rbx/3.105 options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e");
-      ctx.parse("bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41");
-      ctx.parse("bundler/1.15.4 rubygems/2.6.14 ruby/2.4.2 (x86_64-w64-mingw32) command/install options/ 6e8fa23dbf26d4ff Gemstash/1.1.0");
-      ctx.parse("bundler/1.16.2 rubygems/2.7.6 ruby/2.5.0 (x86_64-Oracle Corporation-linux) command/install jruby/9.2.1.0-SNAPSHOT options/no_install,retry,jobs,gemfile ci/travis,ci fe5e45257d515f1f");
-      ctx.parse("bundler/1.5.1 rubygems/2.2.0 ruby/2.1.0 (x86_64-unknown-linux-gnu) command/install fe5e45257d515f1f");
-      ctx.parse("Ruby, Gems 1.1.1");
-      ctx.parse("Ruby, RubyGems/1.3.7 x86_64-linux Ruby/1.9.2 (2010-08-18 patchlevel 0)");
-      ctx.parse("Ruby, RubyGems/2.6.6 x86_64-linux Ruby/2.3.1 (2018-01-06 patchlevel 0) rbx");
-    })
+            ctx.parse(&mut capture_locations,"bundler/1.16.1 rubygems/2.6.11 ruby/2.4.1 (x86_64-pc-linux-gnu) command/install options/no_install,mirror.https://rubygems.org/,mirror.https://rubygems.org/.fallback_timeout/,path 59dbf8e99fa09c0a");
+            ctx.parse(&mut capture_locations,"bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41");
+            ctx.parse(&mut capture_locations,"bundler/1.16.1 rubygems/2.7.6 ruby/2.5.1 (x86_64-pc-linux-gnu) command/install rbx/3.105 options/no_install,git.allow_insecure,build.nokogiri,jobs,path,app_config,silence_root_warning,bin,gemfile e710485d04febb1e");
+            ctx.parse(&mut capture_locations,"bundler/1.12.5 rubygems/2.6.10 ruby/2.3.1 (x86_64-pc-linux-gnu) command/install options/orig_path 95ac718b0e500f41");
+            ctx.parse(&mut capture_locations,"bundler/1.15.4 rubygems/2.6.14 ruby/2.4.2 (x86_64-w64-mingw32) command/install options/ 6e8fa23dbf26d4ff Gemstash/1.1.0");
+            ctx.parse(&mut capture_locations,"bundler/1.16.2 rubygems/2.7.6 ruby/2.5.0 (x86_64-Oracle Corporation-linux) command/install jruby/9.2.1.0-SNAPSHOT options/no_install,retry,jobs,gemfile ci/travis,ci fe5e45257d515f1f");
+            ctx.parse(&mut capture_locations,"bundler/1.5.1 rubygems/2.2.0 ruby/2.1.0 (x86_64-unknown-linux-gnu) command/install fe5e45257d515f1f");
+            ctx.parse(&mut capture_locations,"Ruby, Gems 1.1.1");
+            ctx.parse(&mut capture_locations,"Ruby, RubyGems/1.3.7 x86_64-linux Ruby/1.9.2 (2010-08-18 patchlevel 0)");
+            ctx.parse(&mut capture_locations,"Ruby, RubyGems/2.6.6 x86_64-linux Ruby/2.3.1 (2018-01-06 patchlevel 0) rbx");
+        })
     }
 }

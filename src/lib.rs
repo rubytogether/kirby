@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::io::*;
 use std::net::IpAddr;
+use user_agent::ParseCaptureLocations;
 
 pub mod clickhouse;
 mod file;
@@ -134,16 +135,25 @@ fn increment_maybe(
 
 pub fn print_unknown_user_agents(path: &str, opts: &Options) {
     let ctx = user_agent::ParseCtx::new();
+    let capture_locations = &mut ctx.capture_locations();
     file::reader(path, opts).split(b'\n').for_each(|line| {
         let l = &line.unwrap();
         let r: request::Request = serde_json::from_slice(l).unwrap();
-        if ctx.parse(r.shared.user_agent.as_ref()).is_none() {
+        if ctx
+            .parse(capture_locations, r.shared.user_agent.as_ref())
+            .is_none()
+        {
             println!("{}", r.shared.user_agent)
         }
     });
 }
 
-pub fn count_line(ctx: &user_agent::ParseCtx, times: &mut TimeMap, line: &str) {
+pub fn count_line(
+    ctx: &user_agent::ParseCtx,
+    capture_locations: &mut ParseCaptureLocations,
+    times: &mut TimeMap,
+    line: &str,
+) {
     let r: request::Request = serde_json::from_str(&line).unwrap();
 
     if duplicate_request(&r) {
@@ -161,7 +171,7 @@ pub fn count_line(ctx: &user_agent::ParseCtx, times: &mut TimeMap, line: &str) {
         r.shared.tls_cipher.as_ref(),
         user_key,
     );
-    if let Some(ua) = ctx.parse(r.shared.user_agent.as_ref()) {
+    if let Some(ua) = ctx.parse(capture_locations, r.shared.user_agent.as_ref()) {
         increment_maybe(counters, FieldName::rubygems, ua.rubygems, user_key);
         increment_maybe(counters, FieldName::bundler, ua.bundler, user_key);
         increment_maybe(counters, FieldName::ruby, ua.ruby, user_key);
@@ -176,6 +186,7 @@ pub fn stream_stats<'a>(mut stream: Box<dyn BufRead + 'a>, opts: &Options) -> Ti
     let mut lineno = 0;
 
     let ctx = user_agent::ParseCtx::new();
+    let capture_locations = &mut ctx.capture_locations();
     let mut line = String::with_capacity(1024 * 1024);
 
     loop {
@@ -199,7 +210,7 @@ pub fn stream_stats<'a>(mut stream: Box<dyn BufRead + 'a>, opts: &Options) -> Ti
             }
         }
 
-        count_line(&ctx, &mut times, line.as_str());
+        count_line(&ctx, capture_locations, &mut times, line.as_str());
     }
 
     if opts.verbose {

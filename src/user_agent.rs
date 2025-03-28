@@ -42,12 +42,12 @@ impl ParseCtx {
     */
     pub fn new() -> Self {
         Self {
-      bundler_pattern: Regex::new(r"\Abundler/([0-9a-zA-Z.\-]+) rubygems/([0-9a-zA-Z.\-]+) ruby/([0-9a-zA-Z.\-]+) \(([^)]*)\) command/(.*?)(?: jruby/([0-9a-zA-Z.\-]+))?(?: truffleruby/([0-9a-zA-Z.\-]+))?(?: options/(.*?))?(?: ci/(.*?))? [a-f0-9]{16}(?: Gemstash/([0-9a-zA-Z.\-]+))?\z").unwrap(),
-      ruby_pattern: Regex::new(r"\A(?:Ruby, )?RubyGems/([0-9a-z.\-]+) (.*) Ruby/([0-9a-z.\-]+) \(.*?\)(?: jruby| truffleruby| rbx)?(?: Gemstash/([0-9a-z.\-]+))?\z").unwrap(),
-      // From the "gems" gem
-      gem_pattern: Regex::new(r"\ARuby, Gems ([0-9a-z.\-]+)\z").unwrap(),
-      generic_pattern: Regex::new(r"\A(?:Ruby, )?([^ /]+)(?:/([^ /]+))?").unwrap(),
-    }
+            bundler_pattern: Regex::new(r"\Abundler/([0-9a-zA-Z.\-]+) rubygems/([0-9a-zA-Z.\-]+) ruby/([0-9a-zA-Z.\-]+) \(([^)]*)\) command/(.*?)(?: jruby/([0-9a-zA-Z.\-]+))?(?: truffleruby/([0-9a-zA-Z.\-]+))?(?: options/(.*?))?(?: ci/(.*?))? [a-f0-9]{16}(?: Gemstash/([0-9a-zA-Z.\-]+))?\z").unwrap(),
+            ruby_pattern: Regex::new(r"\A(?:Ruby, )?RubyGems/([0-9a-z.\-]+) (.*) Ruby/([0-9a-z.\-]+) \(.*?\)(?: jruby| truffleruby| rbx)?(?: Gemstash/([0-9a-z.\-]+))?\z").unwrap(),
+            // From the "gems" gem
+            gem_pattern: Regex::new(r"\ARuby, Gems ([0-9a-z.\-]+)\z").unwrap(),
+            generic_pattern: Regex::new(r"\A(?:Ruby, )?([^ /]+)(?:/([^ /]+))?").unwrap(),
+        }
     }
 
     pub fn parse<'line>(&self, a: &'line str) -> Option<UserAgent<'line>> {

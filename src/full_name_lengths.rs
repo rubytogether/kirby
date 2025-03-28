@@ -29,5 +29,5 @@ pub static FULL_NAMES: LazyLock<HashMap<&'static str, (u8, u8)>> = LazyLock::new
 
 #[test]
 fn test_full_names() {
-    assert!(FULL_NAMES.len() > 0);
+    assert!(!FULL_NAMES.is_empty());
 }

@@ -154,7 +154,7 @@ pub fn count_line(
     times: &mut TimeMap,
     line: &str,
 ) {
-    let r: request::Request = serde_json::from_str(&line).unwrap();
+    let r: request::Request = serde_json::from_str(line).unwrap();
 
     if duplicate_request(&r) {
         return;

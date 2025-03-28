@@ -98,7 +98,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
         Client::new(&config)
     };
 
-    let context = kirby::clickhouse::Context::new(&*kirby::full_name_lengths::FULL_NAMES);
+    let context = kirby::clickhouse::Context::new(&kirby::full_name_lengths::FULL_NAMES);
 
     for record in event.payload.records {
         for record in record.sns.message.records {
@@ -128,7 +128,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
                 clickhouse(&mut writer, reader, &context)?;
             }
             let result_key = [
-                &key.replace("fastly_json", "incremental")
+                key.replace("fastly_json", "incremental")
                     .trim_end_matches(".log.gz"),
                 ".json.gz",
             ]

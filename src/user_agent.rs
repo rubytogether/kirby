@@ -36,6 +36,12 @@ pub struct ParseCaptureLocations {
     generic_captures: regex::CaptureLocations,
 }
 
+impl Default for ParseCtx {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParseCtx {
     /*
      * Here are some more regexes that indirect commented out so they didn't get moved to ParseCtx.
@@ -71,11 +77,11 @@ impl ParseCtx {
         capture_locations: &mut ParseCaptureLocations,
         a: &'line str,
     ) -> Option<UserAgent<'line>> {
-        let mut bl = &mut capture_locations.bundler_captures;
-        let mut rl = &mut capture_locations.ruby_captures;
-        let mut gl = &mut capture_locations.gem_captures;
+        let bl = &mut capture_locations.bundler_captures;
+        let rl = &mut capture_locations.ruby_captures;
+        let gl = &mut capture_locations.gem_captures;
 
-        if self.bundler_pattern.captures_read(&mut bl, a).is_some() {
+        if self.bundler_pattern.captures_read(bl, a).is_some() {
             Some(UserAgent {
                 agent_name: Some("bundler"),
                 agent_version: match bl.get(1) {
@@ -123,7 +129,7 @@ impl ParseCtx {
                     _ => None,
                 },
             })
-        } else if self.ruby_pattern.captures_read(&mut rl, a).is_some() {
+        } else if self.ruby_pattern.captures_read(rl, a).is_some() {
             return Some(UserAgent {
                 agent_name: Some("rubygems"),
                 agent_version: match rl.get(1) {
@@ -153,7 +159,7 @@ impl ParseCtx {
                     _ => None,
                 },
             });
-        } else if self.gem_pattern.captures_read(&mut gl, a).is_some() {
+        } else if self.gem_pattern.captures_read(gl, a).is_some() {
             return Some(UserAgent {
                 agent_name: Some("gems"),
                 agent_version: match gl.get(1) {
@@ -217,7 +223,7 @@ where
         None => serde::Serialize::serialize(pl, serializer),
         Some(pl) => {
             let platform = PLATFORM_PARSER
-                .parse(*pl)
+                .parse(pl)
                 .inspect_err(|_| info!("unable to parse platform {:?}", pl))
                 .ok();
             serde::Serialize::serialize(&platform, serializer)

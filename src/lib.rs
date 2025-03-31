@@ -278,7 +278,7 @@ where
                             || {
                                 Err(Error::new(
                                     ErrorKind::InvalidData,
-                                    format!("unknown full name: {full_name:?}"),
+                                    format!("unknown full name: {full_name:?} in {:?}", clickhouse),
                                 ))
                             },
                             Ok,
@@ -297,7 +297,10 @@ where
             _ => {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
-                    "missing gem, version, or platform from request",
+                    format!(
+                        "missing gem, version, or platform from request in {:?}",
+                        clickhouse,
+                    ),
                 ));
             }
         }

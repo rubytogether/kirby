@@ -14,9 +14,11 @@ rm bootstrap
 cd -
 
 aws lambda update-function-code \
+  --no-cli-pager \
   --function-name "kirby-s3" \
   --zip-file "fileb://target/x86_64-unknown-linux-musl/release/aws_lambda.zip"
 aws lambda update-function-code \
+  --no-cli-pager \
   --function-name "kirby-s3-clickhouse" \
   --zip-file "fileb://target/x86_64-unknown-linux-musl/release/aws_lambda_clickhouse.zip"
 set +x

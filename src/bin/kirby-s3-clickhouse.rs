@@ -11,8 +11,9 @@ use aws_sdk_s3::Client;
 use aws_sdk_s3::config::Credentials;
 use aws_sdk_s3::operation::put_object::PutObjectOutput;
 use aws_sdk_s3::primitives::ByteStream;
-use flate2::read::GzDecoder;
 use kirby::clickhouse;
+use kirby::s3::S3EventType;
+use kirby::s3::read_object;
 use lambda_runtime::Error;
 use lambda_runtime::LambdaEvent;
 use lambda_runtime::service_fn;
@@ -22,39 +23,6 @@ use lambda_runtime::tracing::warn;
 use percent_encoding::percent_decode;
 
 use std::env;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Cursor;
-
-async fn read_object(client: &Client, bucket_name: &str, key: &str) -> Box<dyn BufRead> {
-    let object = client
-        .get_object()
-        .bucket(bucket_name)
-        .key(key)
-        .send()
-        .await
-        .expect("Couldn't GET object");
-
-    let bytes = object
-        .body
-        .collect()
-        .await
-        .expect("Couldn't collect object body stream")
-        .into_bytes();
-
-    info!(
-        "{} read {} bytes for {}",
-        time::now_utc().rfc3339(),
-        bytes.len(),
-        key
-    );
-
-    if key.ends_with("gz") {
-        Box::new(BufReader::new(GzDecoder::new(Cursor::new(bytes))))
-    } else {
-        Box::new(BufReader::new(Cursor::new(bytes)))
-    }
-}
 
 async fn write_object<B>(client: &Client, bucket_name: &str, key: &str, body: B) -> PutObjectOutput
 where
@@ -99,9 +67,29 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
     };
 
     let context = kirby::clickhouse::Context::new(&kirby::full_name_lengths::FULL_NAMES);
+    let allow_backfill: bool = env::var("ALLOW_BACKFILL")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap();
 
     for record in event.payload.records {
         for record in record.sns.message.records {
+            let target_directory = match record.event_name.as_ref().map(|s| s.parse()) {
+                None => {
+                    warn!("missing event name for record {:?}", record);
+                    continue;
+                }
+                Some(Ok(S3EventType::ObjectRestoreCompleted)) => {
+                    if !allow_backfill {
+                        continue;
+                    }
+                    "backfill"
+                }
+                Some(Ok(ty)) if ty.is_object_created() => "incremental",
+                _ => {
+                    unreachable!("unexpected event type {:?}", record.event_name);
+                }
+            };
             let (bucket_name, url_key) = match (&record.s3.bucket.name, &record.s3.object.key) {
                 (Some(bucket_name), Some(url_key)) => (bucket_name, url_key),
                 _ => {
@@ -128,7 +116,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
                 clickhouse(&mut writer, reader, &context)?;
             }
             let result_key = [
-                key.replace("fastly_json", "incremental")
+                key.replace("fastly_json", target_directory)
                     .trim_end_matches(".log.gz"),
                 ".json.gz",
             ]

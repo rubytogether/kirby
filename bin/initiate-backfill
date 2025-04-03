@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/inline"
+gemfile do
+  source "https://rubygems.org"
+  gem "aws-sdk-s3", "~> 1.177.0"
+  gem "nokogiri"
+  gem "json"
+  gem "logger"
+  gem "base64"
+  gem "activesupport", require: "active_support/all"
+end
+
+continuation_token_file = File.join(__dir__, ".initiate-backfill.continuation_token")
+continuation_token = File.read(continuation_token_file).strip rescue nil
+bucket = "rubygems-logs.rubytogether"
+
+Stats = Struct.new(:year, :month, :count, :size) do
+  def increment(obj)
+    self.count += 1
+    self.size += obj.size
+  end
+end
+stats = Hash.new do |h, k|
+  y, m = k
+  h[k] = Stats.new(y, m, 0, 0)
+end
+
+increment = lambda do |object|
+  k = object.key.match(/fastly_json\/(\d{4}).(\d{2})/)&.captures || (
+    puts "\nIgnoring #{object.key.inspect}";
+    return
+  )
+  puts stats.values.last unless stats.key?(k)
+  stats[k].increment(object)
+end
+
+client = Aws::S3::Client.new
+begin
+  loop do
+    response = client.list_objects_v2(
+      bucket:,
+      prefix: "fastly_json/",
+      continuation_token:,
+    )
+
+    response.contents.each do |object|
+      increment.call(object)
+      client.restore_object(
+        bucket:,
+        key: object.key,
+        restore_request: {
+          days: 1,
+          glacier_job_parameters: {
+            tier: "Bulk",
+          },
+        },
+      )
+    rescue Aws::S3::Errors::RestoreAlreadyInProgress
+    end
+    print '.'
+    break unless response.is_truncated
+    continuation_token = response.next_continuation_token
+    File.write(continuation_token_file, continuation_token)
+  end
+rescue Interrupt
+  puts "\nInterrupted by user..."
+end
+
+puts "\n"
+puts "Continuation token: #{continuation_token.inspect}" if continuation_token
+
+puts "Total: #{stats.values.sum(&:count).to_fs(:human)} objects, #{stats.values.sum(&:size).to_fs(:human_size)}"

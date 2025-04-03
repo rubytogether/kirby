@@ -19,6 +19,7 @@ mod file;
 pub mod full_name_lengths;
 mod platform;
 mod request;
+pub mod s3;
 mod user_agent;
 
 const METADATA_PATHS: [&str; 4] = [

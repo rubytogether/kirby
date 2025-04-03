@@ -9,39 +9,14 @@ use aws_lambda_events::sns::SnsEventObj;
 use aws_sdk_s3::Client;
 use aws_sdk_s3::operation::put_object::PutObjectOutput;
 use aws_sdk_s3::primitives::ByteStream;
-use flate2::read::GzDecoder;
+use kirby::s3::{S3EventType, read_object};
 use lambda_runtime::tracing::{self, info, warn};
 use lambda_runtime::{Error, LambdaEvent, service_fn};
 use percent_encoding::percent_decode;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Cursor;
+use std::env;
 
 use kirby::Options;
 use kirby::stream_stats;
-
-async fn read_object(client: &Client, bucket_name: &str, key: &str) -> Box<dyn BufRead> {
-    let object = client
-        .get_object()
-        .bucket(bucket_name)
-        .key(key)
-        .send()
-        .await
-        .expect("Couldn't GET object");
-
-    let bytes = object
-        .body
-        .collect()
-        .await
-        .expect("Couldn't collect object body stream")
-        .into_bytes();
-
-    if key.ends_with("gz") {
-        Box::new(BufReader::new(GzDecoder::new(Cursor::new(bytes))))
-    } else {
-        Box::new(BufReader::new(Cursor::new(bytes)))
-    }
-}
 
 async fn write_object<B>(client: &Client, bucket_name: &str, key: &str, body: B) -> PutObjectOutput
 where
@@ -62,6 +37,11 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
     let config = aws_config::from_env().region(region_provider).load().await;
     let client = Client::new(&config);
 
+    let allow_backfill: bool = env::var("ALLOW_BACKFILL")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap();
+
     let opts = Options {
         paths: vec![],
         verbose: false,
@@ -70,6 +50,22 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
 
     for record in event.payload.records {
         for record in record.sns.message.records {
+            match record.event_name.as_ref().map(|s| s.parse()) {
+                None => {
+                    warn!("missing event name for record {:?}", record);
+                    continue;
+                }
+                Some(Ok(S3EventType::ObjectRestoreCompleted)) => {
+                    if !allow_backfill {
+                        continue;
+                    }
+                }
+                Some(Ok(ty)) if ty.is_object_created() => {}
+                _ => {
+                    unreachable!("unexpected event type {:?}", record.event_name);
+                }
+            };
+
             let (bucket_name, url_key) = match (&record.s3.bucket.name, &record.s3.object.key) {
                 (Some(bucket_name), Some(url_key)) => (bucket_name, url_key),
                 _ => {

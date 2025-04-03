@@ -1,3 +1,4 @@
 /logs
 /target
 **/*.rs.bk
+/bin/.*.continuation_token

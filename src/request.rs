@@ -15,6 +15,10 @@ impl ResponseStatus {
     pub fn is_success(&self) -> bool {
         self.0 == 200 || self.0 == 304
     }
+
+    pub fn not_modified(&self) -> bool {
+        self.0 == 304
+    }
 }
 
 impl<'de> Deserialize<'de> for ResponseStatus {

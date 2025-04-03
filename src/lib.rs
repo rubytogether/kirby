@@ -276,13 +276,28 @@ where
                     let (name_len, version_len) =
                         context.full_name_lengths.get(full_name).map_or_else(
                             || {
-                                Err(Error::new(
-                                    ErrorKind::InvalidData,
-                                    format!("unknown full name: {full_name:?} in {:?}", clickhouse),
-                                ))
+                                if clickhouse.response_status.not_modified() {
+                                    Ok(&(0, 0))
+                                } else {
+                                    Err(Error::new(
+                                        ErrorKind::InvalidData,
+                                        format!(
+                                            "unknown full name: {full_name:?} in {:?}",
+                                            clickhouse
+                                        ),
+                                    ))
+                                }
                             },
                             Ok,
                         )?;
+
+                    // 304s can be missing the headers for gem, version, platform
+                    // Don't error if that's the case, just continue, since it is such
+                    // a small percentage of the requests.
+                    if *name_len == 0 && *version_len == 0 {
+                        continue;
+                    }
+
                     let name_end = *name_len as usize;
                     let version_end = name_end + 1 + *version_len as usize;
                     clickhouse.gem = Some(Cow::Borrowed(&full_name[..name_end]));

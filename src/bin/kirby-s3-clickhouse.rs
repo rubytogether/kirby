@@ -38,6 +38,24 @@ where
         .expect("Couldn't PUT object")
 }
 
+fn destination_key(key: &str, target_directory: &str) -> String {
+    let parts = key
+        .trim_start_matches("fastly_json/")
+        .trim_end_matches(".log.gz")
+        .split('/')
+        .collect::<Vec<_>>();
+    match parts[..] {
+        [y, m, d, name] => format!("{}/{}/{}/{}/{}.json.gz", target_directory, y, m, d, name),
+        [name] => {
+            let y = &name[..4];
+            let m = &name[5..7];
+            let d = &name[8..10];
+            format!("{}/{}/{}/{}/{}.json.gz", target_directory, y, m, d, name)
+        }
+        _ => format!("{}/{}.json.gz", target_directory, parts.join("/")),
+    }
+}
+
 async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
     let s3_client = {
         let config = aws_config::from_env().load().await;
@@ -115,12 +133,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
 
                 clickhouse(&mut writer, reader, &context)?;
             }
-            let result_key = [
-                key.replace("fastly_json", target_directory)
-                    .trim_end_matches(".log.gz"),
-                ".json.gz",
-            ]
-            .concat();
+            let result_key = destination_key(key.as_ref(), target_directory);
             info!(
                 "{} uploading results to {}",
                 time::now_utc().rfc3339(),
@@ -161,5 +174,25 @@ mod test {
         };
 
         func(event).await
+    }
+
+    #[test]
+    fn test_destination_key() {
+        let key = "fastly_json/2025/04/01/2025-04-01T04:00:00.000-W_DzA6b6s9QaCDzkOgDj.log.gz";
+        let target_directory = "incremental";
+        let expected =
+            "incremental/2025/04/01/2025-04-01T04:00:00.000-W_DzA6b6s9QaCDzkOgDj.json.gz";
+        assert_eq!(destination_key(key, target_directory), expected);
+
+        let key = "fastly_json/2017-06-05T05:00:00.000-xpHgT4KL5P-M0PMAAAAA.log.gz";
+        let expected =
+            "incremental/2017/06/05/2017-06-05T05:00:00.000-xpHgT4KL5P-M0PMAAAAA.json.gz";
+        assert_eq!(destination_key(key, target_directory), expected);
+
+        let key = "fastly_json/2025/2025-04-01T04:00:00.000-W_DzA6b6s9QaCDzkOgDj.log.gz";
+        assert_eq!(
+            destination_key(key, target_directory),
+            "incremental/2025/2025-04-01T04:00:00.000-W_DzA6b6s9QaCDzkOgDj.json.gz"
+        );
     }
 }

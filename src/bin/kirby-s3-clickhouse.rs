@@ -117,15 +117,10 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
             };
 
             let key = percent_decode(url_key.as_bytes()).decode_utf8()?;
-            info!(
-                "{} downloading {}/{}",
-                time::now_utc().rfc3339(),
-                bucket_name,
-                key
-            );
+            info!("downloading {}/{}", bucket_name, key);
             let reader = read_object(&s3_client, bucket_name, &key).await;
 
-            info!("{} transforming entries...", time::now_utc().rfc3339());
+            info!("transforming entries...");
             let mut content = Vec::new();
             {
                 let mut writer =
@@ -134,11 +129,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
                 clickhouse(&mut writer, reader, &context)?;
             }
             let result_key = destination_key(key.as_ref(), target_directory);
-            info!(
-                "{} uploading results to {}",
-                time::now_utc().rfc3339(),
-                &result_key
-            );
+            info!("uploading results to {}", &result_key);
 
             write_object(
                 &gcp_client,
@@ -148,7 +139,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
             )
             .await;
 
-            info!("{} done with {}", time::now_utc().rfc3339(), &key);
+            info!("done with {}", &key);
         }
     }
 

@@ -75,25 +75,16 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
             };
 
             let key = percent_decode(url_key.as_bytes()).decode_utf8()?;
-            info!(
-                "{} downloading {}/{}",
-                time::now_utc().rfc3339(),
-                bucket_name,
-                key
-            );
+            info!("downloading {}/{}", bucket_name, key);
             let reader = read_object(&client, bucket_name, &key).await;
 
-            info!("{} calculating stats...", time::now_utc().rfc3339());
+            info!("calculating stats...");
             let content = stream_stats(reader, &opts);
 
             let result_key = [&key, ".json"]
                 .concat()
                 .replace("fastly_json", "fastly_stats");
-            info!(
-                "{} uploading results to {}",
-                time::now_utc().rfc3339(),
-                &result_key
-            );
+            info!("uploading results to {}", &result_key);
             write_object(
                 &client,
                 bucket_name,
@@ -102,7 +93,7 @@ async fn func(event: LambdaEvent<SnsEventObj<S3Event>>) -> Result<(), Error> {
             )
             .await;
 
-            info!("{} done with {}", time::now_utc().rfc3339(), &key);
+            info!("done with {}", &key);
         }
     }
 

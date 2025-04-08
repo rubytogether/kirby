@@ -8,6 +8,7 @@ extern crate time;
 use argparse::{ArgumentParser, Collect, StoreTrue};
 use kirby::Options;
 use rayon::prelude::*;
+use time::format_description::well_known::Rfc3339;
 
 fn main() {
     let mut opts = Options {
@@ -49,7 +50,7 @@ fn main() {
         .unwrap();
 
     let output = json!({
-      "ran_at": format!("{}", time::now_utc().rfc3339()),
+      "ran_at": time::UtcDateTime::now().format(&Rfc3339).unwrap(),
       "stats": stats,
       "files": opts.paths,
     });

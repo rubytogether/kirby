@@ -23,12 +23,7 @@ pub async fn read_object(client: &Client, bucket_name: &str, key: &str) -> Box<d
         .expect("Couldn't collect object body stream")
         .into_bytes();
 
-    info!(
-        "{} read {} bytes for {}",
-        time::now_utc().rfc3339(),
-        bytes.len(),
-        key
-    );
+    info!("read {} bytes for {}", bytes.len(), key);
 
     if key.ends_with("gz") {
         Box::new(BufReader::new(GzDecoder::new(Cursor::new(bytes))))

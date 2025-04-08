@@ -10,6 +10,7 @@ gemfile do
   gem "logger"
   gem "base64"
   gem "activesupport", require: "active_support/all"
+  gem "parallel"
 end
 
 continuation_token_file = File.join(__dir__, ".initiate-backfill.continuation_token")
@@ -26,14 +27,16 @@ stats = Hash.new do |h, k|
   y, m = k
   h[k] = Stats.new(y, m, 0, 0)
 end
-
+MUTEX = Mutex.new
 increment = lambda do |object|
   k = object.key.match(/fastly_json\/(\d{4}).(\d{2})/)&.captures || (
     puts "\nIgnoring #{object.key.inspect}";
     return
   )
-  puts stats.values.last unless stats.key?(k)
-  stats[k].increment(object)
+  MUTEX.synchronize do
+    puts stats.values.last unless stats.key?(k)
+    stats[k].increment(object)
+  end
 end
 
 client = Aws::S3::Client.new
@@ -45,7 +48,7 @@ begin
       continuation_token:,
     )
 
-    response.contents.each do |object|
+    Parallel.each(response.contents, in_threads: 10) do |object|
       increment.call(object)
       client.restore_object(
         bucket:,
